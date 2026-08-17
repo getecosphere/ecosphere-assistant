@@ -9,6 +9,16 @@ const reloadBtn = document.getElementById("reload");
 const whoEl = document.getElementById("who");
 const signoutBtn = document.getElementById("signout");
 
+const estatePanel = document.getElementById("estate-panel");
+const epName = document.getElementById("ep-name");
+const epHost = document.getElementById("ep-host");
+const epDeploy = document.getElementById("ep-deploy");
+const epLog = document.getElementById("ep-log");
+const epActions = document.getElementById("ep-actions");
+const epReload = document.getElementById("ep-reload");
+
+let estateData = null;
+
 const HOST_NAME = "com.opencode.sidebar";
 const SESSION_KEY = "eco_session";
 const AUTH_BASE = "https://getecosphere.com";
@@ -112,6 +122,41 @@ function signout() {
   applySessionUI();
 }
 
+// ── Estate detection + deploy ────────────────────────────────────────────
+
+function refreshEstate() {
+  if (!session || !session.token) {
+    estatePanel.classList.add("hidden");
+    return;
+  }
+  chrome.storage.local.get("eco_estate").then((stored) => {
+    const e = stored && stored.eco_estate;
+    if (e && e.name) {
+      estateData = e;
+      epName.textContent = e.name;
+      epHost.textContent = e.hostname + " · " + new URL(e.url || "https://" + e.hostname).hostname;
+      estatePanel.classList.remove("hidden");
+    } else {
+      estateData = null;
+      estatePanel.classList.add("hidden");
+    }
+  });
+}
+
+function appendEstateLog(line) {
+  epLog.textContent += line + "\n";
+  epLog.scrollTop = epLog.scrollHeight;
+}
+
+function doDeploy() {
+  epLog.classList.remove("hidden");
+  epLog.textContent = "";
+  epActions.classList.add("hidden");
+  epDeploy.disabled = true;
+  setStatus(false, "Deploying\u2026");
+  hostPort.postMessage({ type: "find-estate", hostname: estateData.hostname });
+}
+
 function showStep(id) {
   for (const s of [STEP_HOST, STEP_OPENCODE, STEP_DIR, STEP_BUSY]) {
     document.getElementById(s).classList.toggle("hidden", s !== id);
@@ -197,6 +242,33 @@ function onHostMessage(msg) {
       setDirError(msg.error || "Failed to start the server.");
       showStep(STEP_DIR);
     }
+  } else if (msg.type === "find-estate") {
+    if (msg.found && msg.matches && msg.matches.length) {
+      appendEstateLog("Project folder: " + msg.matches[0].directory);
+      hostPort.postMessage({ type: "deploy", directory: msg.matches[0].directory });
+    } else {
+      appendEstateLog(
+        "No local project folder found for this estate.\nClone it locally first (e.g. ~/ar-rahman/estates/" +
+          (estateData ? estateData.name : "name") + ").",
+      );
+      epDeploy.disabled = false;
+      setStatus(false, "Estate folder not found");
+    }
+  } else if (msg.type === "deploy-start") {
+    appendEstateLog("Running eco up --remote\u2026\n");
+  } else if (msg.type === "deploy-log") {
+    appendEstateLog(msg.line);
+  } else if (msg.type === "deploy-done") {
+    epDeploy.disabled = false;
+    if (msg.ok) {
+      appendEstateLog("\n\u2713 Deploy finished.");
+      epActions.classList.remove("hidden");
+      setStatus(true, "Estate updated");
+      epReload.click();
+    } else {
+      appendEstateLog("\nDeploy failed (exit " + msg.code + ").");
+      setStatus(false, "Deploy failed");
+    }
   }
 }
 
@@ -262,6 +334,17 @@ document.getElementById("login-id").addEventListener("keydown", (e) => {
 });
 signoutBtn.addEventListener("click", signout);
 
+epDeploy.addEventListener("click", () => {
+  if (estateData && hostPort) doDeploy();
+});
+epReload.addEventListener("click", () => {
+  chrome.tabs.query({ active: true, currentWindow: true }).then((tabs) => {
+    const target = tabs.find((t) => t.id !== chrome.tabs.TAB_ID_NONE) || tabs[0];
+    if (target && target.id != null) chrome.tabs.reload(target.id);
+  });
+});
+window.addEventListener("focus", refreshEstate);
+
 portInput.value = getPort();
 portInput.addEventListener("change", () => {
   const p = parseInt(portInput.value, 10);
@@ -290,6 +373,7 @@ chrome.storage.local.get(SESSION_KEY).then((stored) => {
   session = (stored && stored[SESSION_KEY]) || null;
   if (session && session.token) {
     applySessionUI();
+    refreshEstate();
     bootWizard();
   } else {
     session = null;
