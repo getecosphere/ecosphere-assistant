@@ -6,6 +6,41 @@
   box-sizing: border-box;
 }
 
+.hidden {
+  display: none !important;
+}
+
+#who {
+  font-size: 12px;
+  opacity: 0.8;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 140px;
+}
+
+.login-brand {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.login-brand img {
+  width: 34px;
+  height: 34px;
+  border-radius: 8px;
+}
+
+#login input[type="text"],
+#login input[type="password"] {
+  width: 100%;
+  padding: 7px 8px;
+  font-size: 13px;
+  border-radius: 6px;
+  border: 1px solid color-mix(in srgb, currentColor 25%, transparent);
+  background: canvas;
+}
+
 html,
 body {
   margin: 0;

@@ -1,12 +1,17 @@
 const frame = document.getElementById("frame");
 const wizard = document.getElementById("wizard");
+const loginEl = document.getElementById("login");
 const overlay = document.getElementById("overlay");
 const dot = document.getElementById("dot");
 const statusEl = document.getElementById("status");
 const portInput = document.getElementById("port");
 const reloadBtn = document.getElementById("reload");
+const whoEl = document.getElementById("who");
+const signoutBtn = document.getElementById("signout");
 
 const HOST_NAME = "com.opencode.sidebar";
+const SESSION_KEY = "eco_session";
+const AUTH_BASE = "https://getecosphere.com";
 const DEFAULT_PORT = 4096;
 const TIMEOUT_MS = 2500;
 
@@ -17,6 +22,7 @@ const STEP_BUSY = "step-busy";
 
 let hostPort = null;
 let gotStatus = false;
+let session = null;
 let state = {
   opencodePath: null,
   opencodeVersion: null,
@@ -33,6 +39,77 @@ function getPort() {
 function setStatus(ok, label) {
   dot.className = "dot " + (ok ? "on" : "off");
   statusEl.textContent = label;
+}
+
+// ── Account (getecosphere.com) ───────────────────────────────────────────
+
+function applySessionUI() {
+  const loggedIn = Boolean(session && session.token);
+  loginEl.classList.toggle("hidden", loggedIn);
+  wizard.classList.add("hidden");
+  overlay.classList.add("hidden");
+  frame.removeAttribute("src");
+  whoEl.classList.toggle("hidden", !loggedIn);
+  signoutBtn.classList.toggle("hidden", !loggedIn);
+  portInput.classList.toggle("hidden", !loggedIn);
+  reloadBtn.classList.toggle("hidden", !loggedIn);
+  if (loggedIn) {
+    whoEl.textContent = session.username || session.name || "";
+    setStatus(false, "Signed in");
+  } else {
+    setStatus(false, "Sign in to continue");
+  }
+}
+
+function setLoginError(text) {
+  const el = document.getElementById("login-error");
+  el.textContent = text || "";
+  el.classList.toggle("hidden", !text);
+}
+
+async function login() {
+  const username = document.getElementById("login-id").value.trim();
+  const password = document.getElementById("login-pass").value;
+  const btn = document.getElementById("login-btn");
+  setLoginError("");
+  if (!username || !password) {
+    setLoginError("Enter your username or email and password.");
+    return;
+  }
+  btn.disabled = true;
+  btn.textContent = "Signing in\u2026";
+  try {
+    const res = await fetch(`${AUTH_BASE}/auth-api/auth/login`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ username, password }),
+    });
+    const data = await res.json().catch(() => ({}));
+    if (!res.ok || !data.token) {
+      throw new Error(data.message || data.error || "Invalid credentials.");
+    }
+    session = {
+      token: data.token,
+      username: (data.user && data.user.username) || username,
+      name: (data.user && data.user.name) || "",
+      role: (data.user && data.user.role) || "",
+    };
+    chrome.storage.local.set({ [SESSION_KEY]: session });
+    applySessionUI();
+    bootWizard();
+  } catch (err) {
+    setLoginError(err.message || "Sign in failed.");
+  } finally {
+    btn.disabled = false;
+    btn.textContent = "Sign in";
+  }
+}
+
+function signout() {
+  session = null;
+  chrome.storage.local.remove(SESSION_KEY);
+  document.getElementById("login-pass").value = "";
+  applySessionUI();
 }
 
 function showStep(id) {
@@ -139,6 +216,13 @@ function connected() {
   setStatus(true, "Connected");
 }
 
+function bootWizard() {
+  setStatus(false, "Checking\u2026");
+  showStep(STEP_BUSY);
+  gotStatus = false;
+  openPort();
+}
+
 // --- event wiring ---
 
 document.getElementById("recheck-host").addEventListener("click", () => {
@@ -169,6 +253,15 @@ document.getElementById("dir").addEventListener("keydown", (e) => {
 
 document.getElementById("ext-id").textContent = chrome.runtime.id;
 
+document.getElementById("login-btn").addEventListener("click", login);
+document.getElementById("login-pass").addEventListener("keydown", (e) => {
+  if (e.key === "Enter") login();
+});
+document.getElementById("login-id").addEventListener("keydown", (e) => {
+  if (e.key === "Enter") document.getElementById("login-pass").focus();
+});
+signoutBtn.addEventListener("click", signout);
+
 portInput.value = getPort();
 portInput.addEventListener("change", () => {
   const p = parseInt(portInput.value, 10);
@@ -193,5 +286,13 @@ document.getElementById("open-tab").addEventListener("click", () => {
 // --- boot ---
 
 setStatus(false, "Checking\u2026");
-showStep(STEP_BUSY);
-openPort();
+chrome.storage.local.get(SESSION_KEY).then((stored) => {
+  session = (stored && stored[SESSION_KEY]) || null;
+  if (session && session.token) {
+    applySessionUI();
+    bootWizard();
+  } else {
+    session = null;
+    applySessionUI();
+  }
+});

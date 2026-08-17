@@ -3,19 +3,38 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>OpenCode Sidebar</title>
+    <title>Ecosphere Assistant</title>
     <link rel="stylesheet" href="sidepanel.css" />
   </head>
   <body>
     <header id="bar">
       <span id="dot" class="dot unknown" title="server status"></span>
-      <span id="status">OpenCode</span>
-      <input id="port" type="number" min="1" max="65535" title="server port" />
-      <button id="reload" title="Reload">&#x21bb;</button>
+      <span id="status">Ecosphere Assistant</span>
+      <span id="who" class="hidden"></span>
+      <input id="port" type="number" min="1" max="65535" title="server port" class="hidden" />
+      <button id="reload" title="Reload" class="hidden">&#x21bb;</button>
+      <button id="signout" title="Sign out" class="hidden">&#x2398;</button>
     </header>
 
     <main id="stage">
       <iframe id="frame" title="OpenCode" allow="clipboard-read; clipboard-write"></iframe>
+
+      <div id="login" class="hidden">
+        <div class="wstep">
+          <div class="login-brand">
+            <img src="icons/icon128.png" alt="Ecosphere Assistant" />
+            <h2>Ecosphere Assistant</h2>
+          </div>
+          <p class="muted">Sign in to getecosphere.com to open your workspace.</p>
+          <input id="login-id" type="text" spellcheck="false" autocomplete="username" placeholder="Username or email" />
+          <input id="login-pass" type="password" autocomplete="current-password" placeholder="Password" />
+          <p id="login-error" class="error hidden"></p>
+          <div class="row">
+            <button id="login-btn">Sign in</button>
+            <a class="text-link" href="https://getecosphere.com/register" target="_blank" rel="noopener">Create account</a>
+          </div>
+        </div>
+      </div>
 
       <div id="wizard" class="hidden">
         <div id="step-host" class="wstep">
