@@ -1,0 +1,6 @@
+native/key.pem
+native/config.json
+native/host
+native/opencode-server.log
+native/server.pid
+.DS_Store

@@ -1,0 +1,80 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>OpenCode Sidebar</title>
+    <link rel="stylesheet" href="sidepanel.css" />
+  </head>
+  <body>
+    <header id="bar">
+      <span id="dot" class="dot unknown" title="server status"></span>
+      <span id="status">OpenCode</span>
+      <input id="port" type="number" min="1" max="65535" title="server port" />
+      <button id="reload" title="Reload">&#x21bb;</button>
+    </header>
+
+    <main id="stage">
+      <iframe id="frame" title="OpenCode" allow="clipboard-read; clipboard-write"></iframe>
+
+      <div id="wizard" class="hidden">
+        <div id="step-host" class="wstep">
+          <h2>Step 1 &#183; Enable the helper</h2>
+          <p>
+            The helper lets this extension start OpenCode for you. Do this once:
+          </p>
+          <ol>
+            <li>Open the extension folder you loaded, then open <code>native</code>.</li>
+            <li>Double-click <code>install.command</code> and follow the terminal output.</li>
+            <li>Come back and click <em>Check again</em>.</li>
+          </ol>
+          <p class="muted">Your extension ID is <code id="ext-id"></code></p>
+          <div class="row">
+            <button id="recheck-host">Check again</button>
+          </div>
+        </div>
+
+        <div id="step-opencode" class="wstep">
+          <h2>Step 2 &#183; Install OpenCode</h2>
+          <p>
+            OpenCode isn't installed yet. Install it right here &mdash; it usually
+            takes a minute.
+          </p>
+          <button id="install-oc">Install OpenCode</button>
+          <pre id="install-log"></pre>
+        </div>
+
+        <div id="step-dir" class="wstep">
+          <h2>Step 3 &#183; Choose a project folder</h2>
+          <p>
+            OpenCode will work inside this folder. Use the folder you cloned
+            getecosphere into (e.g. the <code>frontend</code> folder).
+          </p>
+          <input id="dir" type="text" spellcheck="false" placeholder="/Users/you/project" />
+          <p id="dir-error" class="error hidden"></p>
+          <div class="row">
+            <button id="connect-btn">Connect</button>
+          </div>
+        </div>
+
+        <div id="step-busy" class="wstep">
+          <h2>Checking&#8230;</h2>
+        </div>
+      </div>
+
+      <div id="overlay" class="hidden">
+        <div class="card">
+          <h1 id="ov-heading">OpenCode server not running</h1>
+          <p id="ov-body">Start it in a terminal, then hit Retry:</p>
+          <code id="cmd">opencode web --port 4096</code>
+          <div class="row">
+            <button id="retry">Retry</button>
+            <button id="open-tab">Open in tab</button>
+          </div>
+        </div>
+      </div>
+    </main>
+
+    <script src="sidepanel.js"></script>
+  </body>
+</html>

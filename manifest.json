@@ -1,0 +1,30 @@
+{
+  "manifest_version": 3,
+  "name": "OpenCode Sidebar",
+  "version": "1.1.0",
+  "description": "Embed the OpenCode web interface in a Chrome side panel so you can browse and code in one window.",
+  "minimum_chrome_version": "114",
+  "key": "MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAkAl5djYUC1F9L2lN06681E2rmGkXuo4bjFgd70wK98/8TOBJ0kbOy1wYAHm9ybl4nKwINM8Xpilbo8nEfsStEF7e6nHZaXGr1yk4e+S2I9V0jNqJBES2kaAvbuig2tS4OkjCRBX+iJiIQfJgpq4IdGL6mk//8kwCDjemXrKsC3RWGEVSIv1qbjVkPEbSTOr8Suau4zufHkIqugrFK0w8bCYNJPfdTGmLHimp0g+9JiBEQcfSp5x0MH9GAlQe1cfy7c2XDGpVtP+2mLmq5krJi+0sXTmG9pcLLH34bkqz9HdYG0syuptX4qwucKHeM79t2XeRjrJBdXlDdlW4ocKZ5QIDAQAB",
+  "permissions": ["sidePanel", "nativeMessaging"],
+  "host_permissions": ["http://127.0.0.1:*/*", "http://localhost:*/*"],
+  "icons": {
+    "16": "icons/icon16.png",
+    "32": "icons/icon32.png",
+    "48": "icons/icon48.png",
+    "128": "icons/icon128.png"
+  },
+  "background": {
+    "service_worker": "background.js"
+  },
+  "action": {
+    "default_title": "Toggle OpenCode sidebar",
+    "default_icon": {
+      "16": "icons/icon16.png",
+      "32": "icons/icon32.png",
+      "48": "icons/icon48.png"
+    }
+  },
+  "side_panel": {
+    "default_path": "sidepanel.html"
+  }
+}
