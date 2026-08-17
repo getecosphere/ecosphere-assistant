@@ -194,6 +194,79 @@ button:disabled {
   background: canvas;
 }
 
+/* Estate deploy panel */
+#estate-panel {
+  flex: 0 0 auto;
+  border-bottom: 1px solid color-mix(in srgb, currentColor 15%, transparent);
+  background: color-mix(in srgb, currentColor 4%, transparent);
+  padding: 8px 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  font-size: 12px;
+}
+
+.ep-top {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.ep-badge {
+  font: 600 10px var(--font-mono, monospace);
+  letter-spacing: 0.1em;
+  color: #fff;
+  background: #4f46e5;
+  border-radius: 4px;
+  padding: 2px 5px;
+}
+
+.ep-info {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.ep-info b {
+  font-size: 12.5px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.ep-info span {
+  font-size: 11px;
+  opacity: 0.7;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+#ep-log {
+  margin: 0;
+  padding: 8px;
+  max-height: 200px;
+  overflow: auto;
+  font-size: 10.5px;
+  line-height: 1.45;
+  white-space: pre-wrap;
+  word-break: break-word;
+  border-radius: 6px;
+  background: color-mix(in srgb, currentColor 8%, transparent);
+}
+
+.ep-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.ep-done {
+  color: #34c759;
+  font-weight: 600;
+}
+
 .error {
   color: #ff3b30;
   font-size: 12px;

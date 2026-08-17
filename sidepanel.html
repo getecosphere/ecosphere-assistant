@@ -16,6 +16,22 @@
       <button id="signout" title="Sign out" class="hidden">&#x2398;</button>
     </header>
 
+    <section id="estate-panel" class="hidden">
+      <div class="ep-top">
+        <span class="ep-badge">ESTATE</span>
+        <div class="ep-info">
+          <b id="ep-name"></b>
+          <span id="ep-host"></span>
+        </div>
+        <button id="ep-deploy" title="eco up --remote">Deploy &#x21bb;</button>
+      </div>
+      <pre id="ep-log" class="hidden"></pre>
+      <div id="ep-actions" class="ep-actions hidden">
+        <span id="ep-done" class="ep-done">&#x2713; Updated</span>
+        <button id="ep-reload">Reload page</button>
+      </div>
+    </section>
+
     <main id="stage">
       <iframe id="frame" title="OpenCode" allow="clipboard-read; clipboard-write"></iframe>
 

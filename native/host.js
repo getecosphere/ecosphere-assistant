@@ -210,6 +210,92 @@ async function handleStatus() {
   };
 }
 
+const ESTATE_ROOTS = [
+  path.join(os.homedir(), "ar-rahman", "estates"),
+  path.join(os.homedir(), "ar-rahman"),
+  path.join(os.homedir(), "SuperApp"),
+];
+
+function shellQuote(s) {
+  return "'" + String(s).replace(/'/g, "'\\''") + "'";
+}
+
+function deriveEstateName(ecomposeText) {
+  const m = String(ecomposeText).match(/^project:\s*(.+)$/m);
+  return m ? m[1].trim() : "";
+}
+
+function findEstateByHostname(hostname) {
+  const needle = `hostname: ${hostname}`;
+  const matches = [];
+  const visited = new Set();
+  function scan(dir) {
+    if (visited.has(dir)) return;
+    visited.add(dir);
+    let entries = [];
+    try {
+      entries = fs.readdirSync(dir, { withFileTypes: true });
+    } catch {
+      return;
+    }
+    for (const entry of entries) {
+      if (entry.name.startsWith(".")) continue;
+      const p = path.join(dir, entry.name);
+      if (!entry.isDirectory()) continue;
+      // ecompose.yml directly here?
+      const direct = path.join(p, "ecompose.yml");
+      if (fs.existsSync(direct)) {
+        try {
+          const text = fs.readFileSync(direct, "utf8");
+          if (text.includes(needle)) {
+            matches.push({ estate: deriveEstateName(text) || entry.name, directory: p });
+          }
+        } catch {}
+        continue;
+      }
+      // nested layout: <project>/<project>/ecompose.yml
+      try {
+        for (const sub of fs.readdirSync(p, { withFileTypes: true })) {
+          if (!sub.isDirectory() || sub.name.startsWith(".")) continue;
+          const sp = path.join(p, sub.name);
+          const nested = path.join(sp, "ecompose.yml");
+          if (fs.existsSync(nested)) {
+            const text = fs.readFileSync(nested, "utf8");
+            if (text.includes(needle)) {
+              matches.push({ estate: deriveEstateName(text) || sub.name, directory: sp });
+            }
+          }
+        }
+      } catch {}
+    }
+  }
+  for (const root of ESTATE_ROOTS) scan(root);
+  const seen = new Set();
+  return matches.filter((m) => (seen.has(m.directory) ? false : (seen.add(m.directory), true)));
+}
+
+async function handleFindEstate(hostname) {
+  const matches = findEstateByHostname(hostname || "");
+  return { type: "find-estate", hostname, found: matches.length > 0, matches };
+}
+
+function handleDeploy(directory) {
+  return new Promise((resolve) => {
+    send({ type: "deploy-start" });
+    const cmd = `source ~/.zshrc >/dev/null 2>&1; cd ${shellQuote(directory)} && eco up --remote`;
+    const child = spawn("zsh", ["-lc", cmd], { stdio: ["ignore", "pipe", "pipe"] });
+    const onData = (d) => {
+      for (const line of String(d).split("\n")) {
+        const l = line.trim();
+        if (l) send({ type: "deploy-log", line: l });
+      }
+    };
+    child.stdout.on("data", onData);
+    child.stderr.on("data", onData);
+    child.on("close", (code) => resolve({ type: "deploy-done", ok: code === 0, code }));
+  });
+}
+
 let buffer = Buffer.alloc(0);
 let pending = 0;
 let stdinClosed = false;
@@ -259,6 +345,12 @@ function processMessage(body) {
       track(handleStart(port, msg.directory));
       break;
     }
+    case "find-estate":
+      track(handleFindEstate(msg.hostname));
+      break;
+    case "deploy":
+      track(handleDeploy(msg.directory));
+      break;
     case "stop":
       track(handleStop());
       break;
