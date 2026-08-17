@@ -5,7 +5,7 @@ Everything you paste into the CWS developer dashboard for `getecosphere/ecospher
 ## Metadata
 
 - **Name:** Ecosphere Assistant
-- **Short description:** Your Ecosphere estate in a sidebar: guided setup, build with AI, compose, and deploy — one window for the whole workflow.
+- **Short description:** Your Ecosphere estate in a sidebar: guided setup, build with AI, compose LXS, and deploy — one window for the whole workflow.
 - **Category:** Developer Tools
 - **Language:** English
 - **Homepage:** https://getecosphere.com/install
@@ -20,10 +20,13 @@ Everything you paste into the CWS developer dashboard for `getecosphere/ecospher
 > Your estate is what you build and run — the application you own. Beginner or
 > expert, the assistant keeps it beside the page you're reading. Guided setup
 > gets you started in minutes: it detects and installs what you need and
-> connects your estate automatically. From there you build with an AI coding
-> agent, run and share your estate locally, and deploy to production. When
-> you're ready, compose reusable capabilities (LXS) into your estate — the
-> powerful part, but never the first thing you need.
+> connects your estate automatically. Build with an AI coding agent, run and
+> share your estate locally, and deploy to production.
+>
+> And because a great estate is composed, not just coded: when you need a
+> capability, compose an LXS — reusable, versioned Linux Services that plug
+> straight into your estate without rebuilding them. Powerful, and ready when
+> you are.
 >
 > Everything runs locally. The assistant talks to servers on your own machine;
 > your code never leaves your computer.
@@ -34,7 +37,7 @@ Everything you paste into the CWS developer dashboard for `getecosphere/ecospher
 > - AI coding agent in a side panel — build and edit your estate while keeping
 >   any page open.
 > - Run locally (eco up), share, and deploy to production.
-> - Compose reusable capabilities (LXS) into your estate when you need them.
+> - Compose LXS — reusable, versioned capabilities that plug into your estate.
 > - Ask anything — questions about Ecosphere docs or your project, answered
 >   right in the panel.
 >
