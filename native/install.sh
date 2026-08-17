@@ -52,17 +52,36 @@ require("$DIR/host.js");
 EOF
 chmod +x "$DIR/host" "$DIR/host.js"
 
-EXT_ID="$(node -e '
+HAS_KEY="$(node -e '
+const fs = require("fs");
+const m = JSON.parse(fs.readFileSync(process.argv[1], "utf8"));
+process.stdout.write(m.key ? "yes" : "no");
+' "$EXT_DIR/manifest.json")"
+
+if [ "$HAS_KEY" = "yes" ]; then
+  EXT_ID="$(node -e '
 const fs = require("fs"), crypto = require("crypto");
 const m = JSON.parse(fs.readFileSync(process.argv[1], "utf8"));
-if (!m.key) { console.error("manifest.json has no \"key\" field"); process.exit(1); }
 const pub = Buffer.from(m.key, "base64");
 process.stdout.write(
   crypto.createHash("sha256").update(pub).digest().slice(0, 16).toString("base64")
     .replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, ""),
 );
 ' "$EXT_DIR/manifest.json")"
-echo "Extension ID: $EXT_ID"
+  echo "Extension ID (from manifest key): $EXT_ID"
+else
+  echo ""
+  echo "This manifest has no \"key\", so the extension ID cannot be computed."
+  echo "Copy the ID shown in chrome://extensions (or in the side panel's Step 1)"
+  echo "and paste it below. Press Enter to abort."
+  read -r -p "Extension ID: " EXT_ID || true
+  EXT_ID="$(echo "$EXT_ID" | tr -d '[:space:]')"
+  if [ -z "$EXT_ID" ]; then
+    echo "No ID provided. Aborting."
+    exit 1
+  fi
+  echo "Using extension ID: $EXT_ID"
+fi
 
 mkdir -p "$HOME/Library/Application Support/Google/Chrome/NativeMessagingHosts" \
   "$HOME/Library/Application Support/Google/Chrome Canary/NativeMessagingHosts" \
