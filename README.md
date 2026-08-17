@@ -1,8 +1,8 @@
-# Ecosphere OpenCode Assistant
+# Ecosphere Assistant
 
-A Chrome extension that embeds the [OpenCode](https://opencode.ai) AI coding agent in a side panel — browse a page and code in the same window.
+A Chrome extension that puts your Ecosphere workspace in a side panel — from first install to production, all in one window. Guided setup, an AI coding agent, the LXS marketplace, and deployment controls, next to the page you're reading.
 
-It detects whether OpenCode is installed, guides a first-time setup, and can install OpenCode itself with live progress. The local server auto-starts when you open the sidebar.
+It detects what you need, installs it for you with live progress, and connects your project automatically. Everything runs locally; your code never leaves your machine.
 
 ## Install (3 steps)
 
@@ -18,8 +18,7 @@ See [getecosphere.com/install](https://getecosphere.com/install) for the guided 
 - `native/host.js` — a native messaging host that checks for OpenCode, runs the official installer (`curl https://opencode.ai/install | bash`) with streamed progress, and starts `opencode serve --port 4096` in your project folder.
 - `native/install.command` / `install.sh` — one-time registration of the native host (macOS).
 - The extension ID is pinned via the `key` in `manifest.json`, so the native host origin stays valid across reloads.
-
-Everything runs locally; your code never leaves your machine.
+- `store/` — Chrome Web Store listing assets (screenshots, copy, store-ready zip).
 
 ## Uninstall
 
