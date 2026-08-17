@@ -5,7 +5,7 @@ Everything you paste into the CWS developer dashboard for `getecosphere/ecospher
 ## Metadata
 
 - **Name:** Ecosphere Assistant
-- **Short description:** Your Ecosphere workspace in a sidebar: guided setup, compose LXS, build with AI, and deploy — one window for the whole workflow.
+- **Short description:** Your Ecosphere estate in a sidebar: guided setup, build with AI, compose, and deploy — one window for the whole workflow.
 - **Category:** Developer Tools
 - **Language:** English
 - **Homepage:** https://getecosphere.com/install
@@ -14,15 +14,16 @@ Everything you paste into the CWS developer dashboard for `getecosphere/ecospher
 
 ## Full description
 
-> Ecosphere Assistant — one window for the whole Ecosphere workflow, from first
+> Ecosphere Assistant — one window for your whole Ecosphere estate, from first
 > install to production.
 >
-> Beginner or expert, the assistant keeps the platform beside the page you're
-> reading. Guided setup gets you started in minutes: it detects and installs
-> what you need and connects your project automatically. From there you can
-> browse the LXS marketplace and compose reusable capabilities into your estate,
-> ask questions about Ecosphere and your code, and run, share, and deploy — all
-> from a side panel, no tab juggling.
+> Your estate is what you build and run — the application you own. Beginner or
+> expert, the assistant keeps it beside the page you're reading. Guided setup
+> gets you started in minutes: it detects and installs what you need and
+> connects your estate automatically. From there you build with an AI coding
+> agent, run and share your estate locally, and deploy to production. When
+> you're ready, compose reusable capabilities (LXS) into your estate — the
+> powerful part, but never the first thing you need.
 >
 > Everything runs locally. The assistant talks to servers on your own machine;
 > your code never leaves your computer.
@@ -30,19 +31,18 @@ Everything you paste into the CWS developer dashboard for `getecosphere/ecospher
 > **What it does**
 > - Guided first-run setup — installs OpenCode and the eco CLI for you, with
 >   live progress in the side panel.
-> - AI coding agent in a side panel — build and edit your project while keeping
+> - AI coding agent in a side panel — build and edit your estate while keeping
 >   any page open.
-> - LXS marketplace — discover reusable Linux Services and compose them into
->   your estate.
+> - Run locally (eco up), share, and deploy to production.
+> - Compose reusable capabilities (LXS) into your estate when you need them.
 > - Ask anything — questions about Ecosphere docs or your project, answered
 >   right in the panel.
-> - Run locally (eco up), share, and deploy to production.
 >
 > **Getting started**
 > 1. Install the extension.
 > 2. Double-click `native/install.command` once to register the local helper
 >    (macOS).
-> 3. Click the extension icon — setup runs and your workspace connects.
+> 3. Click the extension icon — setup runs and your estate connects.
 >
 > Requirements: Chrome 114+, macOS, Node.js.
 >
