@@ -1,8 +1,8 @@
 {
   "manifest_version": 3,
-  "name": "OpenCode Assistant",
-  "version": "1.1.0",
-  "description": "An AI coding agent in a Chrome side panel — browse a page and code in the same window. Installs OpenCode for you if it's missing.",
+  "name": "Ecosphere Assistant",
+  "version": "1.2.0",
+  "description": "Your Ecosphere workspace in a sidebar: guided setup, compose LXS, build with AI, and deploy — one window for the whole workflow.",
   "homepage_url": "https://getecosphere.com/install",
   "minimum_chrome_version": "114",
   "key": "MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAkAl5djYUC1F9L2lN06681E2rmGkXuo4bjFgd70wK98/8TOBJ0kbOy1wYAHm9ybl4nKwINM8Xpilbo8nEfsStEF7e6nHZaXGr1yk4e+S2I9V0jNqJBES2kaAvbuig2tS4OkjCRBX+iJiIQfJgpq4IdGL6mk//8kwCDjemXrKsC3RWGEVSIv1qbjVkPEbSTOr8Suau4zufHkIqugrFK0w8bCYNJPfdTGmLHimp0g+9JiBEQcfSp5x0MH9GAlQe1cfy7c2XDGpVtP+2mLmq5krJi+0sXTmG9pcLLH34bkqz9HdYG0syuptX4qwucKHeM79t2XeRjrJBdXlDdlW4ocKZ5QIDAQAB",

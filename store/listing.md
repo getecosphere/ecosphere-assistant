@@ -1,54 +1,59 @@
-# Chrome Web Store listing — OpenCode Assistant
+# Chrome Web Store listing — Ecosphere Assistant
 
-Everything you paste into the CWS developer dashboard for `getecosphere/ecosphere-opencode-assistant`.
+Everything you paste into the CWS developer dashboard for `getecosphere/ecosphere-assistant`.
 
 ## Metadata
 
-- **Name:** OpenCode Assistant
-- **Short description:** An AI coding agent in a Chrome side panel — browse a page and code in the same window.
+- **Name:** Ecosphere Assistant
+- **Short description:** Your Ecosphere workspace in a sidebar: guided setup, compose LXS, build with AI, and deploy — one window for the whole workflow.
 - **Category:** Developer Tools
 - **Language:** English
 - **Homepage:** https://getecosphere.com/install
 - **Privacy policy URL:** https://getecosphere.com/privacy
-- **Support URL:** https://github.com/getecosphere/ecosphere-opencode-assistant
+- **Support URL:** https://github.com/getecosphere/ecosphere-assistant
 
 ## Full description
 
-> Code while you browse.
+> Ecosphere Assistant — one window for the whole Ecosphere workflow, from first
+> install to production.
 >
-> OpenCode Assistant puts an AI coding agent in a Chrome side panel, so you can
-> work on a project and keep the page you're reading on screen — one window,
-> no tab juggling.
+> Beginner or expert, the assistant keeps the platform beside the page you're
+> reading. Guided setup gets you started in minutes: it detects and installs
+> what you need and connects your project automatically. From there you can
+> browse the LXS marketplace and compose reusable capabilities into your estate,
+> ask questions about Ecosphere and your code, and run, share, and deploy — all
+> from a side panel, no tab juggling.
 >
-> Everything runs locally. The extension talks to a local server on your
-> machine; your code never leaves your computer.
+> Everything runs locally. The assistant talks to servers on your own machine;
+> your code never leaves your computer.
 >
-> First-run setup is guided:
-> - The extension detects whether OpenCode is installed.
-> - If it's missing, it installs OpenCode for you and shows live progress.
-> - Then you choose your project folder and it connects automatically.
+> **What it does**
+> - Guided first-run setup — installs OpenCode and the eco CLI for you, with
+>   live progress in the side panel.
+> - AI coding agent in a side panel — build and edit your project while keeping
+>   any page open.
+> - LXS marketplace — discover reusable Linux Services and compose them into
+>   your estate.
+> - Ask anything — questions about Ecosphere docs or your project, answered
+>   right in the panel.
+> - Run locally (eco up), share, and deploy to production.
 >
-> Requirements
-> - Google Chrome 114 or newer.
-> - macOS (the one-time native helper uses install.command). Node.js is
->   needed by the helper to register itself and to start the local server.
-> - OpenCode (the extension installs it for you if missing).
->
-> Getting started
+> **Getting started**
 > 1. Install the extension.
-> 2. Open the extension folder and double-click native/install.command once to
->    register the local helper.
-> 3. Click the extension icon — the side panel opens, installs OpenCode if
->    needed, and connects to your project folder.
+> 2. Double-click `native/install.command` once to register the local helper
+>    (macOS).
+> 3. Click the extension icon — setup runs and your workspace connects.
 >
-> Source: https://github.com/getecosphere/ecosphere-opencode-assistant
+> Requirements: Chrome 114+, macOS, Node.js.
+>
+> Source: https://github.com/getecosphere/ecosphere-assistant
 
 ## Screenshots (1280x800)
 
 | File | Caption |
 |------|---------|
 | `screenshots/01-connected-sidebar.png` | The assistant connected: pick a project folder and start coding. |
-| `screenshots/02-first-run-wizard.png` | Guided setup — the assistant installs OpenCode with live progress. |
+| `screenshots/02-first-run-wizard.png` | Guided setup — the assistant installs what you need with live progress. |
 | `screenshots/03-coding-conversation.png` | Ask anything about your project while you keep your page open. |
 
 ## Permission justification
@@ -81,5 +86,4 @@ Everything you paste into the CWS developer dashboard for `getecosphere/ecospher
    build. The helper (`native/install.command`) auto-detects the extension ID
    when the manifest carries a `key`, otherwise it prompts the user to paste
    the ID shown in `chrome://extensions`. Paste your own published ID into the
-   helper at setup, or update `native/install.sh`/the repo copy before
-   distributing.
+   helper at setup, or update `native/install.sh` before distributing.
