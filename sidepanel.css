@@ -25,6 +25,21 @@
   gap: 10px;
 }
 
+#login {
+  position: absolute;
+  inset: 0;
+  overflow: auto;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px 16px;
+  background: color-mix(in srgb, canvas 96%, transparent);
+}
+
+#login.hidden {
+  display: none;
+}
+
 .login-brand img {
   width: 34px;
   height: 34px;

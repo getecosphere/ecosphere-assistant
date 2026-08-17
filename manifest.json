@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "Ecosphere Assistant",
-  "version": "1.4.0",
+  "version": "1.4.1",
   "description": "Your Ecosphere estate in a sidebar: guided setup, build with AI, compose LXS, and deploy — one window for the whole workflow.",
   "homepage_url": "https://getecosphere.com/install",
   "minimum_chrome_version": "114",
