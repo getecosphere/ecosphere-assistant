@@ -303,6 +303,17 @@ document.getElementById("recheck-host").addEventListener("click", () => {
   openPort();
 });
 
+document.getElementById("download-helper").addEventListener("click", () => {
+  chrome.downloads.download(
+    { url: "https://getecosphere.com/downloads/helper-install.command", filename: "ecosphere-assistant-helper.command" },
+    () => {
+      if (chrome.runtime.lastError) {
+        alert("Download failed: " + chrome.runtime.lastError.message);
+      }
+    },
+  );
+});
+
 document.getElementById("install-oc").addEventListener("click", () => {
   if (hostPort) hostPort.postMessage({ type: "install-opencode" });
 });
