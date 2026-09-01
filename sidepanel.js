@@ -377,6 +377,61 @@ document.getElementById("open-tab").addEventListener("click", () => {
   chrome.tabs.create({ url: `http://127.0.0.1:${getPort()}/` });
 });
 
+// ── Projects mode (project.getecosphere.com) ────────────────────────────
+
+const stage = document.getElementById("stage");
+const projectsEl = document.getElementById("projects");
+const pmframe = document.getElementById("pmframe");
+const tabWorkspace = document.getElementById("tab-workspace");
+const tabProjects = document.getElementById("tab-projects");
+
+function setMode(mode) {
+  const isProjects = mode === "projects";
+  stage.classList.toggle("hidden", isProjects);
+  projectsEl.classList.toggle("hidden", !isProjects);
+  tabWorkspace.classList.toggle("on", !isProjects);
+  tabProjects.classList.toggle("on", isProjects);
+  if (isProjects) {
+    // Reload so the iframe picks up the latest app.
+    pmframe.src = "https://project.getecosphere.com/";
+  }
+}
+
+tabWorkspace.addEventListener("click", () => setMode("workspace"));
+tabProjects.addEventListener("click", () => setMode("projects"));
+
+document.getElementById("popen").addEventListener("click", () => {
+  chrome.tabs.create({ url: "https://project.getecosphere.com/" });
+});
+
+// The Projects app asks us to capture the active tab. We capture it and hand
+// the data URL back to the iframe, which uploads it to the estate storage and
+// attaches it to the QA feedback task being written.
+document.getElementById("pcapture").addEventListener("click", captureActiveTab);
+
+window.addEventListener("message", (ev) => {
+  if (ev.source !== pmframe.contentWindow) return;
+  if (ev.data && ev.data.type === "pm-capture-request") captureActiveTab();
+});
+
+function captureActiveTab() {
+  const btn = document.getElementById("pcapture");
+  btn.disabled = true;
+  chrome.tabs.query({ active: true, currentWindow: true }).then((tabs) => {
+    const target = tabs.find((t) => t.id != null) || tabs[0];
+    chrome.tabs.captureVisibleTab(target ? target.windowId : null, { format: "png" }, (dataUrl) => {
+      btn.disabled = false;
+      if (chrome.runtime.lastError) {
+        alert("Could not capture: " + chrome.runtime.lastError.message);
+        return;
+      }
+      if (pmframe.contentWindow) {
+        pmframe.contentWindow.postMessage({ type: "pm-capture-result", dataUrl }, "*");
+      }
+    });
+  });
+}
+
 // --- boot ---
 
 setStatus(false, "Checking\u2026");

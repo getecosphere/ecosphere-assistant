@@ -16,6 +16,11 @@
       <button id="signout" title="Sign out" class="hidden">&#x2398;</button>
     </header>
 
+    <nav id="modes" class="modes">
+      <button id="tab-workspace" class="on">Workspace</button>
+      <button id="tab-projects">Projects</button>
+    </nav>
+
     <section id="estate-panel" class="hidden">
       <div class="ep-top">
         <span class="ep-badge">ESTATE</span>
@@ -112,6 +117,17 @@
         </div>
       </div>
     </main>
+
+    <section id="projects" class="hidden">
+      <div class="phead">
+        <span class="pbadge">ECOSPHERE PROJECTS</span>
+        <div class="pactions">
+          <button id="pcapture" title="Capture the active tab into a QA task">&#128247; Capture tab</button>
+          <button id="popen" title="Open Projects in a full tab">Open in tab &#8599;</button>
+        </div>
+      </div>
+      <iframe id="pmframe" title="Ecosphere Projects" allow="clipboard-read; clipboard-write" src="https://project.getecosphere.com/"></iframe>
+    </section>
 
     <script src="sidepanel.js"></script>
   </body>
