@@ -4,3 +4,7 @@ native/host
 native/opencode-server.log
 native/server.pid
 .DS_Store
+
+# Build artifact (rebuild with store/package.sh). Never commit: an earlier
+# committed copy leaked native/key.pem, a private key.
+store/ecosphere-assistant-cws.zip
