@@ -5,7 +5,7 @@ Everything you paste into the CWS developer dashboard for `getecosphere/ecospher
 ## Metadata
 
 - **Name:** Ecosphere Assistant
-- **Short description:** Your Ecosphere estate in a sidebar: guided setup, build with AI, compose LXS, deploy — plus Projects for team QA and Kanban.
+- **Short description:** Your estate in a sidebar: guided setup, AI coding, compose your ecompose.yml, deploy — plus Ecosphere Projects for QA and Kanban.
 - **Category:** Developer Tools
 - **Language:** English
 - **Homepage:** https://getecosphere.com/install
@@ -36,8 +36,17 @@ Everything you paste into the CWS developer dashboard for `getecosphere/ecospher
 > - Owners can generate a project-scoped agent token so an AI agent reads and
 >   closes tasks automatically.
 >
-> Everything runs locally except your team workspace. The assistant talks to
-> servers on your own machine; your code never leaves your computer.
+> **Ecosphere Compose** — switch to the **Compose** tab to build and maintain
+> your estate's `ecompose.yml` without hand-editing YAML:
+> - Browse the live LXS registry and add a capability — reusable, versioned
+>   services that plug into your estate.
+> - Watch the estate assemble, and copy the exact `ecompose.yml` plus the
+>   `eco` commands it produces.
+> - No account needed to compose; sign in only when you want to host it.
+>
+> Everything runs locally except your team workspace and the composer. The
+> assistant talks to servers on your own machine; your code never leaves your
+> computer.
 >
 > **What it does**
 > - Guided first-run setup — installs OpenCode and the eco CLI for you, with
@@ -46,6 +55,8 @@ Everything you paste into the CWS developer dashboard for `getecosphere/ecospher
 >   any page open.
 > - Run locally (eco up), share, and deploy to production.
 > - Compose LXS — reusable, versioned capabilities that plug into your estate.
+> - Ecosphere Compose — build and maintain your ecompose.yml from the live
+>   registry, no YAML by hand.
 > - Ecosphere Projects (project.getecosphere.com) — team QA, Kanban, and
 >   one-click screen capture.
 > - Ask anything — questions about Ecosphere docs or your project, answered
@@ -56,7 +67,9 @@ Everything you paste into the CWS developer dashboard for `getecosphere/ecospher
 > 2. Double-click `native/install.command` once to register the local helper
 >    (macOS).
 > 3. Click the extension icon — setup runs and your estate connects.
-> 4. Switch to the **Projects** tab, sign in at project.getecosphere.com, and
+> 4. Switch to the **Compose** tab to add capabilities and generate your
+>    `ecompose.yml`.
+> 5. Switch to the **Projects** tab, sign in at project.getecosphere.com, and
 >    capture QA feedback right from the panel.
 >
 > Requirements: Chrome 114+, macOS, Node.js.
@@ -82,6 +95,9 @@ Everything you paste into the CWS developer dashboard for `getecosphere/ecospher
 - **host_permissions `http://127.0.0.1:*/*`** — the side panel embeds the
   OpenCode web UI served by the user's own local server on loopback. Nothing is
   loaded from the internet.
+- **host_permissions `https://getecosphere.com/*`** — the **Compose** tab
+  embeds the composer at getecosphere.com/compose (and the sign-in page used by
+  guided setup). It reads the public LXS registry; it sends no user data.
 - **host_permissions `https://project.getecosphere.com/*`** — the **Projects**
   tab embeds the user's team workspace (project management / QA).
 - **host_permissions `https://*.jogjaitcamp.com/*` + `activeTab`** — used only
@@ -94,8 +110,10 @@ Everything you paste into the CWS developer dashboard for `getecosphere/ecospher
 
 - No user data is collected, transmitted, or stored outside the user's machine.
 - The extension only connects to `http://127.0.0.1` (loopback) for the coding
-  workspace. The **Projects** tab is the user's own team workspace at
-  project.getecosphere.com (their account, their projects).
+  workspace. The **Compose** tab loads the public composer at
+  getecosphere.com/compose (no account, no user data). The **Projects** tab is
+  the user's own team workspace at project.getecosphere.com (their account,
+  their projects).
 - No analytics, no ads, no remote code. All extension code ships in the package.
 - The embedded UIs are loaded as content (not executed in the extension's
   privileged context). Screen capture only ever happens on an explicit user

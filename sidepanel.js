@@ -377,28 +377,70 @@ document.getElementById("open-tab").addEventListener("click", () => {
   chrome.tabs.create({ url: `http://127.0.0.1:${getPort()}/` });
 });
 
-// ── Projects mode (project.getecosphere.com) ────────────────────────────
+// ── Modes: Workspace (local) · Compose · Projects (eco-pm) ──────────────
+// The composer is one hosted page (getecosphere.com/compose) that every
+// surface loads — the extension never embeds its own copy, so there is a
+// single implementation. "Local" points at a composer running on this machine
+// (the getecosphere estate at :24500) for developing the composer itself.
 
 const stage = document.getElementById("stage");
 const projectsEl = document.getElementById("projects");
 const pmframe = document.getElementById("pmframe");
+const composeEl = document.getElementById("compose");
+const composeframe = document.getElementById("composeframe");
 const tabWorkspace = document.getElementById("tab-workspace");
+const tabCompose = document.getElementById("tab-compose");
 const tabProjects = document.getElementById("tab-projects");
 
+const COMPOSE_URLS = {
+  cloud: "https://getecosphere.com/compose",
+  // 127.0.0.1, not localhost: the estate gateway binds IPv4, and Chrome may
+  // resolve localhost to ::1 first and get connection-refused.
+  local: "http://127.0.0.1:24500/compose",
+};
+let composeTarget = "cloud";
+
+function loadComposer() {
+  composeframe.src = COMPOSE_URLS[composeTarget];
+  const btn = document.getElementById("ctoggle");
+  btn.textContent = (composeTarget === "cloud" ? "Cloud" : "Local") + " \u21c4";
+  btn.title =
+    composeTarget === "cloud"
+      ? "Hosted composer — click to use a locally running one"
+      : "Local composer (localhost:24500) — click to use the hosted one";
+}
+
 function setMode(mode) {
-  const isProjects = mode === "projects";
-  stage.classList.toggle("hidden", isProjects);
-  projectsEl.classList.toggle("hidden", !isProjects);
-  tabWorkspace.classList.toggle("on", !isProjects);
-  tabProjects.classList.toggle("on", isProjects);
-  if (isProjects) {
+  stage.classList.toggle("hidden", mode !== "workspace");
+  composeEl.classList.toggle("hidden", mode !== "compose");
+  projectsEl.classList.toggle("hidden", mode !== "projects");
+  tabWorkspace.classList.toggle("on", mode === "workspace");
+  tabCompose.classList.toggle("on", mode === "compose");
+  tabProjects.classList.toggle("on", mode === "projects");
+  if (mode === "compose") loadComposer();
+  if (mode === "projects") {
     // Reload so the iframe picks up the latest app.
     pmframe.src = "https://project.getecosphere.com/";
   }
 }
 
 tabWorkspace.addEventListener("click", () => setMode("workspace"));
+tabCompose.addEventListener("click", () => setMode("compose"));
 tabProjects.addEventListener("click", () => setMode("projects"));
+
+document.getElementById("copen").addEventListener("click", () => {
+  chrome.tabs.create({ url: COMPOSE_URLS[composeTarget] });
+});
+document.getElementById("ctoggle").addEventListener("click", () => {
+  composeTarget = composeTarget === "cloud" ? "local" : "cloud";
+  chrome.storage.local.set({ composeTarget });
+  loadComposer();
+});
+chrome.storage.local.get("composeTarget").then((s) => {
+  if (s && (s.composeTarget === "cloud" || s.composeTarget === "local")) {
+    composeTarget = s.composeTarget;
+  }
+});
 
 document.getElementById("popen").addEventListener("click", () => {
   chrome.tabs.create({ url: "https://project.getecosphere.com/" });

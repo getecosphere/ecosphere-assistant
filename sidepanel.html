@@ -18,6 +18,7 @@
 
     <nav id="modes" class="modes">
       <button id="tab-workspace" class="on">Workspace</button>
+      <button id="tab-compose">Compose</button>
       <button id="tab-projects">Projects</button>
     </nav>
 
@@ -117,6 +118,17 @@
         </div>
       </div>
     </main>
+
+    <section id="compose" class="hidden">
+      <div class="phead">
+        <span class="pbadge">ECOSPHERE COMPOSE</span>
+        <div class="pactions">
+          <button id="ctoggle" title="Switch between the hosted composer and a locally running one">Cloud &#8644;</button>
+          <button id="copen" title="Open the composer in a full tab">Open in tab &#8599;</button>
+        </div>
+      </div>
+      <iframe id="composeframe" title="Ecosphere Compose" allow="clipboard-read; clipboard-write"></iframe>
+    </section>
 
     <section id="projects" class="hidden">
       <div class="phead">
