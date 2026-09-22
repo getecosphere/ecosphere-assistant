@@ -395,10 +395,10 @@ const tabProjects = document.getElementById("tab-projects");
 // ?embed=1 drops the site chrome (header/footer/hero) so the panel shows just
 // the tool.
 const COMPOSE_URLS = {
-  cloud: "https://getecosphere.com/compose?embed=1",
+  cloud: "https://getecosphere.com/compose-app?embed=1&hero=0",
   // 127.0.0.1, not localhost: the estate gateway binds IPv4, and Chrome may
   // resolve localhost to ::1 first and get connection-refused.
-  local: "http://127.0.0.1:24500/compose?embed=1",
+  local: "http://127.0.0.1:24500/compose-app?embed=1&hero=0",
 };
 let composeTarget = "cloud";
 
