@@ -38,10 +38,11 @@ Everything you paste into the CWS developer dashboard for `getecosphere/ecospher
 >
 > **Ecosphere Compose** — switch to the **Compose** tab to build and maintain
 > your estate's `ecompose.yml` without hand-editing YAML:
+> - It reads your local estate and shows its current capabilities.
 > - Browse the live LXS registry and add a capability — reusable, versioned
->   services that plug into your estate.
-> - Watch the estate assemble, and copy the exact `ecompose.yml` plus the
->   `eco` commands it produces.
+>   services that plug into your estate. Every change is applied by the `eco`
+>   CLI, so your file is merged, never overwritten.
+> - Run it locally or deploy, with the output streamed right in the panel.
 > - No account needed to compose; sign in only when you want to host it.
 >
 > Everything runs locally except your team workspace and the composer. The

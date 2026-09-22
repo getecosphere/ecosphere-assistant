@@ -296,6 +296,89 @@ function handleDeploy(directory) {
   });
 }
 
+// ── Estate bridge: read the estate, and run eco against it ──────────────
+// The composer (an iframe) cannot touch the filesystem; the helper can. So the
+// composer asks for the estate and every mutation goes through `eco` here,
+// which merges the LXS recipe into ecompose.yml without clobbering the user's
+// settings. We never write the file directly.
+
+/// Resolve the estate for a directory the user picked, in a deliberately
+/// narrow order so a stray folder can never target an unrelated estate:
+///   1. the directory itself,
+///   2. the nested `<project>/<project>/ecompose.yml` layout,
+///   3. walk up (the wizard often points at a subfolder, e.g. `.../frontend`).
+/// Never a blanket scan of siblings.
+function findEcomposeDir(startDir) {
+  const base = path.resolve(startDir || os.homedir());
+  if (fs.existsSync(path.join(base, "ecompose.yml"))) return base;
+
+  const nested = path.join(base, path.basename(base));
+  if (fs.existsSync(path.join(nested, "ecompose.yml"))) return nested;
+
+  let dir = base;
+  for (let i = 0; i < 8; i++) {
+    const parent = path.dirname(dir);
+    if (parent === dir) break;
+    if (fs.existsSync(path.join(parent, "ecompose.yml"))) return parent;
+    dir = parent;
+  }
+  return "";
+}
+
+function handleEstateInfo(directory) {
+  const dir = findEcomposeDir(directory);
+  if (!dir) return { type: "estate-info", found: false, directory: "" };
+  let manifest = "";
+  try {
+    manifest = fs.readFileSync(path.join(dir, "ecompose.yml"), "utf8");
+  } catch {}
+  return {
+    type: "estate-info",
+    found: true,
+    directory: dir,
+    project: deriveEstateName(manifest),
+    manifest,
+  };
+}
+
+/// Whitelisted eco invocations. The name is validated and quoted, so nothing
+/// from the composer can reach the shell as a command.
+const ECO_ACTIONS = {
+  "lxs-add": (name) => `eco lxs add ${shellQuote(name)}`,
+  "lxs-remove": (name) => `eco lxs remove ${shellQuote(name)}`,
+  "up-dev": () => "eco up dev",
+  "up-remote": () => "eco up --remote",
+};
+const LXS_NAME_RE = /^[a-z0-9][a-z0-9._-]*(@[A-Za-z0-9._-]+)?$/;
+
+function handleEcoRun(directory, action, name) {
+  return new Promise((resolve) => {
+    const build = ECO_ACTIONS[action];
+    if (!build) return resolve({ type: "eco-done", ok: false, error: "unknown action" });
+    if (action === "lxs-add" || action === "lxs-remove") {
+      if (!LXS_NAME_RE.test(String(name || ""))) {
+        return resolve({ type: "eco-done", ok: false, error: "invalid LXS name" });
+      }
+    }
+    const dir = findEcomposeDir(directory);
+    if (!dir) return resolve({ type: "eco-done", ok: false, error: "no estate found" });
+
+    send({ type: "eco-start", action, name: name || "" });
+    const inner = build(name);
+    const cmd = `source ~/.zshrc >/dev/null 2>&1; cd ${shellQuote(dir)} && ${inner}`;
+    const child = spawn("zsh", ["-lc", cmd], { stdio: ["ignore", "pipe", "pipe"] });
+    const onData = (d) => {
+      for (const line of String(d).split("\n")) {
+        const l = line.replace(/\s+$/, "");
+        if (l.trim()) send({ type: "eco-log", line: l });
+      }
+    };
+    child.stdout.on("data", onData);
+    child.stderr.on("data", onData);
+    child.on("close", (code) => resolve({ type: "eco-done", ok: code === 0, code, action }));
+  });
+}
+
 let buffer = Buffer.alloc(0);
 let pending = 0;
 let stdinClosed = false;
@@ -350,6 +433,12 @@ function processMessage(body) {
       break;
     case "deploy":
       track(handleDeploy(msg.directory));
+      break;
+    case "estate-info":
+      send(handleEstateInfo(msg.directory));
+      break;
+    case "eco-run":
+      track(handleEcoRun(msg.directory, msg.action, msg.name));
       break;
     case "stop":
       track(handleStop());

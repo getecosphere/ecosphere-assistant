@@ -254,6 +254,18 @@ function onHostMessage(msg) {
       epDeploy.disabled = false;
       setStatus(false, "Estate folder not found");
     }
+  } else if (msg.type === "estate-info") {
+    composeSend({
+      type: "eco-compose:load",
+      found: msg.found,
+      directory: msg.directory,
+      project: msg.project,
+      manifest: msg.manifest,
+    });
+  } else if (msg.type === "eco-log") {
+    composeSend({ type: "eco-compose:log", line: msg.line });
+  } else if (msg.type === "eco-done") {
+    composeSend({ type: "eco-compose:done", ok: msg.ok, error: msg.error || "" });
   } else if (msg.type === "deploy-start") {
     appendEstateLog("Running eco up --remote\u2026\n");
   } else if (msg.type === "deploy-log") {
@@ -441,6 +453,55 @@ document.getElementById("ctoggle").addEventListener("click", () => {
 chrome.storage.local.get("composeTarget").then((s) => {
   if (s && (s.composeTarget === "cloud" || s.composeTarget === "local")) {
     composeTarget = s.composeTarget;
+  }
+});
+
+
+// ── Compose bridge: connect the composer to the local estate ─────────────
+// The composer (an iframe) cannot touch the filesystem. It posts intents; we
+// run `eco` through the native helper and send the result — and a freshly read
+// manifest — back. Every mutation goes through the CLI, so the estate's
+// ecompose.yml is merged by eco, never overwritten by the UI.
+
+function composeSend(msg) {
+  try {
+    if (composeframe && composeframe.contentWindow) {
+      composeframe.contentWindow.postMessage(msg, "*");
+    }
+  } catch {}
+}
+
+function composeEco(action, name) {
+  try {
+    if (!hostPort) openPort();
+    hostPort.postMessage({
+      type: "eco-run",
+      directory: state.dir || "",
+      action: action,
+      name: name || "",
+    });
+  } catch {
+    composeSend({ type: "eco-compose:done", ok: false, error: "helper not available" });
+  }
+}
+
+window.addEventListener("message", (ev) => {
+  if (!composeframe || ev.source !== composeframe.contentWindow) return;
+  const d = ev.data;
+  if (!d || typeof d !== "object") return;
+  if (d.type === "eco-compose:ready") {
+    try {
+      if (!hostPort) openPort();
+      hostPort.postMessage({ type: "estate-info", directory: state.dir || "" });
+    } catch {
+      composeSend({ type: "eco-compose:load", found: false });
+    }
+  } else if (d.type === "eco-compose:add") {
+    composeEco("lxs-add", d.name);
+  } else if (d.type === "eco-compose:remove") {
+    composeEco("lxs-remove", d.name);
+  } else if (d.type === "eco-compose:run") {
+    composeEco(d.mode === "remote" ? "up-remote" : "up-dev", "");
   }
 });
 
