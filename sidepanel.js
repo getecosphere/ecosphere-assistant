@@ -267,7 +267,7 @@ function onHostMessage(msg) {
   } else if (msg.type === "eco-done") {
     composeSend({ type: "eco-compose:done", ok: msg.ok, error: msg.error || "" });
   } else if (msg.type === "deploy-start") {
-    appendEstateLog("Running eco up --remote\u2026\n");
+    appendEstateLog("Running eco deploy\u2026\n");
   } else if (msg.type === "deploy-log") {
     appendEstateLog(msg.line);
   } else if (msg.type === "deploy-done") {

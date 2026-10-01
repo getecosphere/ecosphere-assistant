@@ -292,7 +292,7 @@ async function handleFindEstate(hostname) {
 function handleDeploy(directory) {
   return new Promise((resolve) => {
     send({ type: "deploy-start" });
-    const cmd = `source ~/.zshrc >/dev/null 2>&1; cd ${shellQuote(directory)} && eco up --remote`;
+    const cmd = `source ~/.zshrc >/dev/null 2>&1; cd ${shellQuote(directory)} && eco deploy`;
     const child = spawn("zsh", ["-lc", cmd], { stdio: ["ignore", "pipe", "pipe"] });
     const onData = (d) => {
       for (const line of String(d).split("\n")) {

@@ -282,7 +282,7 @@ async function handleFindEstate(hostname) {
 function handleDeploy(directory) {
   return new Promise((resolve) => {
     send({ type: "deploy-start" });
-    const cmd = `source ~/.zshrc >/dev/null 2>&1; cd ${shellQuote(directory)} && eco up --remote`;
+    const cmd = `source ~/.zshrc >/dev/null 2>&1; cd ${shellQuote(directory)} && eco deploy`;
     const child = spawn("zsh", ["-lc", cmd], { stdio: ["ignore", "pipe", "pipe"] });
     const onData = (d) => {
       for (const line of String(d).split("\n")) {
@@ -347,7 +347,7 @@ const ECO_ACTIONS = {
   "lxs-add": (name) => `eco lxs add ${shellQuote(name)}`,
   "lxs-remove": (name) => `eco lxs remove ${shellQuote(name)}`,
   "up-dev": () => "eco up dev",
-  "up-remote": () => "eco up --remote",
+  "up-remote": () => "eco deploy",
 };
 const LXS_NAME_RE = /^[a-z0-9][a-z0-9._-]*(@[A-Za-z0-9._-]+)?$/;
 

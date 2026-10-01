@@ -1,6 +1,6 @@
 // Estate detection: reads the ecosphere-estate meta tag that Eco estates emit
 // (from the gateway/frontend) and records it so the side panel can show the
-// remote estate + offer an eco up --remote deploy.
+// remote estate + offer an eco deploy deploy.
 (function () {
   const meta = document.querySelector('meta[name="ecosphere-estate"]');
   if (!meta || !meta.content) return;
