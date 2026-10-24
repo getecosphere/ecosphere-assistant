@@ -31,8 +31,27 @@ export class OpenCode {
   createSession(title) {
     return this.call("POST", "/session", title ? { title } : {});
   }
-  listSessions() {
-    return this.call("GET", "/session");
+  /// Top-level sessions of this folder, newest first (child sessions of subagents are left out).
+  listSessions({ search, limit = 50 } = {}) {
+    return this.call("GET", "/session", undefined, { roots: "true", limit: String(limit), search: search || undefined });
+  }
+  session(id) {
+    return this.call("GET", `/session/${id}`);
+  }
+  rename(id, title) {
+    return this.call("PATCH", `/session/${id}`, { title });
+  }
+  fork(id, messageID) {
+    return this.call("POST", `/session/${id}/fork`, messageID ? { messageID } : {});
+  }
+  compact(id, providerID, modelID) {
+    return this.call("POST", `/session/${id}/summarize`, { providerID, modelID });
+  }
+  revert(id, messageID) {
+    return this.call("POST", `/session/${id}/revert`, { messageID });
+  }
+  unrevert(id) {
+    return this.call("POST", `/session/${id}/unrevert`, {});
   }
   messages(id) {
     return this.call("GET", `/session/${id}/message`);

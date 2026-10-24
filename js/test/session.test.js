@@ -78,3 +78,28 @@ test("history load reproduces the timeline", () => {
   t.load([{ info: { id: "u", role: "user" }, parts: [{ id: "p", messageID: "u", type: "text", text: "earlier" }] }, { info: { id: "a", role: "assistant" }, parts: [{ id: "q", messageID: "a", type: "text", text: "answer" }] }]);
   assert.deepEqual(t.items().map((i) => i.text), ["earlier", "answer"]);
 });
+
+test("/undo hides the reverted tail; context size and model come from the newest assistant message", () => {
+  const t = new Timeline(S);
+  const user = (id, text) => {
+    t.apply(ev("message.updated", { sessionID: S, info: { id, role: "user" } }));
+    t.apply(ev("message.part.updated", { sessionID: S, part: { id: `p_${id}`, messageID: id, type: "text", text } }));
+  };
+  const bot = (id, text, tokens) => {
+    t.apply(ev("message.updated", { sessionID: S, info: { id, role: "assistant", providerID: "anthropic", modelID: "m1", tokens } }));
+    t.apply(ev("message.part.updated", { sessionID: S, part: { id: `p_${id}`, messageID: id, type: "text", text } }));
+  };
+  user("u1", "one");
+  bot("a1", "A1", { input: 5, output: 10, reasoning: 0, cache: { read: 100, write: 0 } });
+  user("u2", "two");
+  bot("a2", "A2", { input: 7, output: 20, reasoning: 3, cache: { read: 200, write: 50 } });
+  assert.equal(t.contextTokens(), 280);
+  assert.deepEqual(t.model(), { providerID: "anthropic", modelID: "m1" });
+  assert.equal(t.lastUser().id, "u2");
+  t.revertAt = "u2";
+  assert.deepEqual(t.items().map((i) => i.text), ["one", "A1"]);
+  assert.equal(t.lastUser().id, "u1");
+  assert.equal(t.contextTokens(), 115);
+  t.revertAt = "";
+  assert.equal(t.items().length, 4);
+});

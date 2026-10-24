@@ -6,10 +6,12 @@ import { S, call, notify, subscribe, ensureOpenCode, flags } from "./app.js";
 import { pref, setPref } from "./prefs.js";
 import { Timeline, toolArg } from "./session.js";
 import * as page from "./page.js";
+import { sessionsPanel, sessionTitle, fmtTokens } from "./sessions.js";
 
 const A = {
   tl: null,
   sessionId: "",
+  meta: null, // the OpenCode session object (title, tokens, revert)
   abort: null,
   draft: "",
   chips: { page: true, shot: false, el: false, cons: false },
@@ -20,7 +22,7 @@ const A = {
   guess: "",
   guessFor: "",
   qa: null, // {n, title} when the run came from a QA request
-  mode: "chat", // chat | summary
+  mode: "chat", // chat | summary | sessions
   summary: null,
   commands: null,
   pop: null, // {kind: "cmd"|"file", items, sel}
@@ -70,11 +72,12 @@ export function mountAgent(root) {
   });
   chrome.tabs.onActivated.addListener(() => S.tab && syncContext(true));
   chrome.tabs.onUpdated.addListener((id, info) => info.status === "complete" && S.tab && id === S.tab.id && syncContext(true));
-  return { show: () => (syncContext(true), connect()), togglePick, runQa, summarize, newSession, sessionStats };
+  return { show: () => (syncContext(true), connect()), togglePick, runQa, summarize, newSession, sessionStats, openSessions };
 }
 
 function build() {
   A.ref.strip = h("div", { class: "strip", role: "status" });
+  A.ref.bar = h("div", { class: "sesbar" });
   A.ref.ctx = h("div", { class: "ctxwrap" });
   A.ref.stream = h("div", { class: "scroll", "aria-live": "polite", "data-stream": "" });
   A.ref.comp = h("div", { class: "comp" });
@@ -83,12 +86,13 @@ function build() {
   A.ref.actions = h("div", { class: "crow" });
   A.ref.pop = h("div");
   A.ref.comp.append(A.ref.pop, A.ref.chips, A.ref.ta, A.ref.actions);
-  clear(A.root, A.ref.strip, A.ref.stream, A.ref.comp);
+  clear(A.root, A.ref.strip, A.ref.bar, A.ref.stream, A.ref.comp);
   paint();
 }
 
 function paint() {
   paintStrip();
+  paintBar();
   paintStream();
   paintChips();
   paintActions();
@@ -181,11 +185,27 @@ function paintStrip() {
   clear(s, l, h("div", { class: "grow" }, h("b", { text: title }), h("div", { class: "sub", text: sub })), chip, h("div", { class: "progress" + (busy && !wait ? " ind" : ""), style: wait ? { width: "50%" } : {} }));
 }
 
+function paintBar() {
+  const b = A.ref.bar;
+  if (!b) return;
+  const n = A.tl ? A.tl.contextTokens() : 0;
+  const big = n >= 100000;
+  clear(
+    b,
+    h("button", { class: "sesbtn", "data-act": "sessions", "aria-haspopup": "dialog", "aria-expanded": String(A.mode === "sessions"), title: t("ses.open", "Sessions"), onclick: () => (A.mode === "sessions" ? closeSessions() : openSessions()) }, h("span", { class: "t", "data-session-title": "", text: A.meta ? sessionTitle(A.meta) : t("ses.new", "New session") }), h("span", { text: "▾" })),
+    n > 0 && h("span", { class: "cc" + (big ? " on" : ""), "data-ctx": "", title: t("ses.ctx", "Size of the conversation sent to the model. A smaller context costs fewer tokens: /compact summarizes it."), text: `ctx ${fmtTokens(n)}` }),
+    big && h("button", { class: "btn g sm", "data-act": "compact", onclick: () => runBuiltin("compact"), text: t("ses.compact", "Compact") }),
+    h("span", { class: "grow" }),
+    h("button", { class: "btn g sm", "data-act": "new-session", onclick: newSession, text: "+ " + t("ses.newShort", "New") }),
+  );
+}
+
 function paintStream() {
   const st = A.ref.stream;
   if (!st) return;
   const nearBottom = st.scrollHeight - st.scrollTop - st.clientHeight < 80;
   if (A.mode === "summary") return paintSummary(st);
+  if (A.mode === "sessions") return clear(st, A.sesPanel.el);
   const tl = A.tl;
   const kids = [];
   A.ref.ctxHost = h("div");
@@ -337,7 +357,9 @@ async function openCommands(q) {
   } catch {
     A.commands = [];
   }
-  const items = (A.commands || []).filter((c) => c.name.startsWith(q)).slice(0, 8).map((c) => ({ label: `/${c.name}`, hint: c.description || "", insert: `/${c.name} ` }));
+  const own = BUILTIN.filter((b) => [b.name, ...b.alias].some((n) => n.startsWith(q))).map((b) => ({ label: `/${b.name}`, hint: t(`slash.${b.name}`, b.hint), insert: `/${b.name} ` }));
+  const rest = (A.commands || []).filter((c) => c.name.startsWith(q) && !builtinFor(c.name)).map((c) => ({ label: `/${c.name}`, hint: c.description || "", insert: `/${c.name} ` }));
+  const items = [...own, ...rest].slice(0, 10);
   A.pop = items.length ? { kind: "cmd", items, sel: 0 } : null;
   paintPop();
 }
@@ -381,7 +403,9 @@ function onKey(e) {
       A.pop.sel = (A.pop.sel + (e.key === "ArrowDown" ? 1 : -1) + A.pop.items.length) % A.pop.items.length;
       return paintPop();
     }
-    if (e.key === "Enter" || e.key === "Tab") {
+    // a fully typed command runs on Enter; a partial one completes first
+    const typed = A.pop.kind === "cmd" && A.ref.ta.value.trim() === A.pop.items[A.pop.sel].label;
+    if ((e.key === "Enter" && !typed) || e.key === "Tab") {
       e.preventDefault();
       return choose(A.pop.sel);
     }
@@ -399,7 +423,7 @@ async function connect() {
   if (!S.active || A.connecting) return;
   const dir = S.active.dir;
   if (A.connectedDir === dir) return;
-  if (A.connectedDir) ((A.tl = null), (A.sessionId = ""), (A.qa = null), (A.picked = null));
+  if (A.connectedDir) ((A.tl = null), (A.sessionId = ""), (A.meta = null), (A.qa = null), (A.picked = null), (A.mode = "chat"));
   A.connecting = true;
   try {
     const oc = await ensureOpenCode();
@@ -410,6 +434,7 @@ async function connect() {
         const tl = new Timeline(A.sessionId);
         tl.load(await oc.messages(A.sessionId));
         A.tl = tl;
+        refreshMeta();
       } catch {
         A.sessionId = "";
       }
@@ -450,6 +475,7 @@ async function resync(oc) {
     A.tl.load(await oc.messages(A.sessionId));
     const st = await oc.status();
     A.tl.busy = Boolean(st[A.sessionId]);
+    await refreshMeta();
     bump();
   } catch {
     /* next event will catch up */
@@ -460,6 +486,7 @@ let raf = 0;
 function onEvent(ev) {
   const tl = A.tl;
   if (!tl) return;
+  if (ev.type === "session.updated" && ev.properties && ev.properties.info && ev.properties.info.id === A.sessionId) setMeta(ev.properties.info);
   const before = tl.finished;
   if (!tl.apply(ev)) return;
   mirrorEvent(ev);
@@ -477,18 +504,178 @@ async function ensureSession() {
   const ses = await oc.createSession();
   A.sessionId = ses.id;
   A.tl = new Timeline(ses.id);
+  A.meta = ses;
   A.startedAt = Date.now();
   setPref(`session:${S.active.dir}`, ses.id);
   return oc;
 }
 
+/// A blank start: nothing is created on the server until the first message (no empty sessions pile up).
 export async function newSession() {
   A.sessionId = "";
   A.tl = null;
+  A.meta = null;
   A.qa = null;
   A.mode = "chat";
-  setPref(`session:${S.active.dir}`, "");
+  if (S.active) setPref(`session:${S.active.dir}`, "");
   bump();
+  A.ref.ta.focus();
+}
+
+function setMeta(info) {
+  A.meta = info;
+  if (A.tl) A.tl.revertAt = (info.revert && info.revert.messageID) || "";
+  bump();
+}
+
+async function refreshMeta() {
+  if (!A.sessionId) return;
+  try {
+    setMeta(await S.oc.session(A.sessionId));
+  } catch {
+    /* title is cosmetic */
+  }
+}
+
+async function switchTo(id) {
+  const oc = await ensureOpenCode();
+  const tl = new Timeline(id);
+  tl.load(await oc.messages(id));
+  try {
+    tl.busy = Boolean((await oc.status())[id]);
+  } catch {
+    /* idle assumed */
+  }
+  A.tl = tl;
+  A.sessionId = id;
+  A.meta = null;
+  A.qa = null;
+  A.mode = "chat";
+  setPref(`session:${S.active.dir}`, id);
+  bump();
+  refreshMeta();
+  A.ref.ta.focus();
+}
+
+// ── session list ──────────────────────────────────────────────────────────
+
+let listTimer = 0;
+async function loadSessions(q = "") {
+  try {
+    const oc = await ensureOpenCode();
+    const [list, st] = await Promise.all([oc.listSessions({ search: q }), oc.status().catch(() => ({}))]);
+    A.sesPanel.set({ list: list.filter((s) => s.title !== "summary draft"), busy: new Set(Object.keys(st)), current: A.sessionId, loading: false, err: "" });
+  } catch (e) {
+    A.sesPanel.set({ err: e.message, loading: false });
+  }
+}
+
+function openSessions() {
+  if (!S.active) return;
+  A.sesPanel ||= sessionsPanel({
+    pick: (id) => (id === A.sessionId ? closeSessions() : switchTo(id).catch((e) => A.sesPanel.set({ err: e.message }))),
+    create: newSession,
+    rename: async (id, title) => {
+      await S.oc.rename(id, title).catch(() => {});
+      if (id === A.sessionId) refreshMeta();
+      loadSessions(A.sesPanel.query());
+    },
+    fork: async (id) => {
+      try {
+        await switchTo((await S.oc.fork(id)).id);
+      } catch (e) {
+        A.sesPanel.set({ err: e.message });
+      }
+    },
+    remove: async (id) => {
+      await S.oc.deleteSession(id).catch(() => {});
+      if (id === A.sessionId) ((A.tl = null), (A.sessionId = ""), (A.meta = null), setPref(`session:${S.active.dir}`, ""));
+      loadSessions(A.sesPanel.query());
+      bump();
+    },
+    search: (q) => (clearTimeout(listTimer), (listTimer = setTimeout(() => loadSessions(q), 200))),
+    close: closeSessions,
+  });
+  A.mode = "sessions";
+  A.sesPanel.set({ current: A.sessionId, loading: true });
+  bump();
+  loadSessions(A.sesPanel.query());
+  A.sesPanel.focus();
+}
+
+function closeSessions() {
+  A.mode = "chat";
+  bump();
+}
+
+// ── slash commands that run in the panel (same names as OpenCode's own) ──
+
+const BUILTIN = [
+  { name: "new", alias: ["clear"], hint: "Start a blank session" },
+  { name: "sessions", alias: ["resume", "continue"], hint: "Switch to another session" },
+  { name: "compact", alias: ["summarize"], hint: "Summarize the session to free context" },
+  { name: "undo", alias: [], hint: "Revert the last message and its file changes" },
+  { name: "redo", alias: [], hint: "Restore what /undo reverted" },
+  { name: "rename", alias: [], hint: "Rename this session: /rename <title>" },
+  { name: "fork", alias: [], hint: "Continue in a copy of this session" },
+];
+const builtinFor = (n) => BUILTIN.find((b) => b.name === n || b.alias.includes(n));
+
+function flash(msg) {
+  A.toast = msg;
+  bump();
+  setTimeout(() => ((A.toast = ""), paintStream()), 4000);
+}
+
+async function configModel(oc) {
+  const [providerID, modelID] = String(((await oc.config().catch(() => null)) || {}).model || "").split("/");
+  return providerID && modelID ? { providerID, modelID } : null;
+}
+
+export async function runBuiltin(name, arg = "") {
+  const b = builtinFor(name);
+  if (!b || !S.active) return;
+  try {
+    const oc = await ensureOpenCode();
+    if (b.name === "new") return newSession();
+    if (b.name === "sessions") return openSessions();
+    if (!A.tl || !A.sessionId) return flash(t("ses.none", "No session yet. Send a message first."));
+    const tl = A.tl;
+    switch (b.name) {
+      case "compact": {
+        const m = tl.model() || (await configModel(oc));
+        if (!m) return flash(t("ses.nomodel", "Send one message first so the model is known."));
+        tl.busy = true;
+        bump();
+        try {
+          await oc.compact(A.sessionId, m.providerID, m.modelID);
+        } finally {
+          tl.busy = false;
+        }
+        await resync(oc);
+        return flash(t("ses.compacted", "Session compacted."));
+      }
+      case "undo": {
+        const last = tl.lastUser();
+        if (!last) return flash(t("ses.nothing", "Nothing to undo."));
+        setMeta(await oc.revert(A.sessionId, last.id));
+        A.draft = A.ref.ta.value = Timeline.userText(last);
+        return flash(t("ses.undone", "Reverted. Your message is back in the box."));
+      }
+      case "redo":
+        setMeta(await oc.unrevert(A.sessionId));
+        tl.revertAt = "";
+        return bump();
+      case "rename":
+        if (!arg.trim()) return flash(t("ses.renameUsage", "Usage: /rename <new title>"));
+        setMeta(await oc.rename(A.sessionId, arg.trim()));
+        return;
+      case "fork":
+        return await switchTo((await oc.fork(A.sessionId)).id);
+    }
+  } catch (e) {
+    flash(e.message);
+  }
 }
 
 async function buildParts(text) {
@@ -530,6 +717,14 @@ async function buildParts(text) {
 async function send(opts = {}) {
   const text = (opts.text ?? A.draft).trim();
   if (!text || A.sending || !S.active) return;
+  const slash = text.match(/^\/([\w-]+)\s*(.*)$/s);
+  if (slash && builtinFor(slash[1])) {
+    A.draft = A.ref.ta.value = "";
+    A.pop = null;
+    paintPop();
+    return runBuiltin(slash[1], slash[2]);
+  }
+  if (A.mode === "sessions") A.mode = "chat";
   A.sending = true;
   paintActions();
   try {
@@ -590,6 +785,7 @@ async function restartOc() {
 function onRunEnd() {
   if (S.tab && A.access) page.readConsole(S.tab.id).then((e) => ((A.consoleErrors = e), paintChips(), paintCtx())).catch(() => {});
   locateElement();
+  refreshMeta();
   if (A.qa) mirrorFlush();
 }
 
@@ -734,7 +930,7 @@ export function sessionStats() {
   if (!tl) return null;
   const tasks = [];
   let cur = null;
-  const rows = [...tl.messages.values()].sort((a, b) => a.order - b.order);
+  const rows = tl.rows();
   for (const m of rows) {
     if (m.role === "user") {
       const text = [...m.parts.values()].filter((p) => p.type === "text" && !p.synthetic).map((p) => p.text).join(" ");

@@ -215,3 +215,21 @@ code{font-size:.92em}
 /* fit long labels */
 .step .body .btn{max-width:100%;overflow:hidden;text-overflow:ellipsis;display:block;height:auto;min-height:30px;padding-top:6px;padding-bottom:6px;white-space:normal;text-align:center}
 .lxs b{font-weight:500}
+
+/* sessions */
+.sesbar{display:flex;align-items:center;gap:8px;padding:6px 12px;border-bottom:1px solid var(--line);background:var(--bg);flex:none}
+.sesbtn{display:inline-flex;align-items:center;gap:6px;min-width:0;max-width:62%;height:26px;padding:0 8px;border:1px solid var(--line);border-radius:8px;background:var(--surface);color:var(--ink);font:600 12.5px var(--sans)}
+.sesbtn .t{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.sesbar .btn.sm,.sespanel .btn.sm{height:26px;padding:0 10px;font-size:12px}
+.sespanel{display:flex;flex-direction:column;gap:8px;padding:12px}
+.seshead{display:flex;align-items:center;gap:8px}
+.sesq{width:100%;height:30px;padding:0 10px;border:1px solid var(--line);border-radius:8px;background:var(--surface);color:var(--ink);font:13px var(--sans)}
+.seslist{display:flex;flex-direction:column;gap:6px}
+.sesrow{display:flex;align-items:center;gap:4px;padding:6px 8px;border:1px solid var(--line);border-radius:10px;background:var(--surface)}
+.sesrow.cur{border-color:var(--brand);background:var(--brand-wash)}
+.sesmain{flex:1;min-width:0;display:flex;flex-direction:column;align-items:flex-start;gap:2px;padding:0;border:0;background:none;text-align:left;color:var(--ink)}
+.sesmain .t{max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font:600 13px var(--sans)}
+.sesmain .m{font:11px var(--mono);color:var(--subtle)}
+.sesrow .ib{width:26px;height:26px;border:0;border-radius:6px;background:none;color:var(--muted);font-size:13px}
+.sesrow .ib:hover{background:var(--raised)}
+.dot{display:inline-block;width:7px;height:7px;margin-right:6px;border-radius:50%;background:var(--brand)}

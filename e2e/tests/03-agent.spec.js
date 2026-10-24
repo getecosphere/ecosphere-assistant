@@ -102,7 +102,7 @@ test("attachments: screenshot chip sends an image part", async ({ app, env }) =>
 test("/ commands and @ files complete in the composer", async ({ app, env }) => {
   await intoApp(app, env);
   const { panel } = app;
-  await panel.locator("textarea").fill("/re");
+  await panel.locator("textarea").fill("/rev");
   await expect(panel.locator('[data-pop="cmd"]')).toContainText("/review");
   await panel.locator("textarea").press("Enter");
   await expect(panel.locator("textarea")).toHaveValue("/review ");

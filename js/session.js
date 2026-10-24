@@ -15,6 +15,36 @@ export class Timeline {
     this.userChips = new Map(); // user message id -> chips
     this.files = new Map(); // path -> {additions, deletions}
     this.finished = 0; // bumps every time a run ends
+    this.revertAt = ""; // /undo: messages from this one on are hidden until /redo
+  }
+
+  /// Visible messages in order (after an /undo the reverted tail is hidden).
+  rows() {
+    const cut = this.revertAt && this.messages.get(this.revertAt) ? this.messages.get(this.revertAt).order : Infinity;
+    return [...this.messages.values()].filter((m) => m.order < cut).sort((a, b) => a.order - b.order);
+  }
+
+  static userText(m) {
+    return [...m.parts.values()].filter((x) => x.type === "text" && !x.synthetic).map((x) => x.text).join("\n");
+  }
+
+  lastUser() {
+    return this.rows().reverse().find((m) => m.role === "user" && Timeline.userText(m).trim()) || null;
+  }
+
+  /// Size of the conversation the model last saw (input + cache + output), from the newest assistant message.
+  contextTokens() {
+    for (const m of this.rows().reverse()) {
+      const k = m.role === "assistant" && m.info && m.info.tokens;
+      if (k) return (k.input || 0) + (k.output || 0) + (k.reasoning || 0) + ((k.cache && k.cache.read) || 0) + ((k.cache && k.cache.write) || 0);
+    }
+    return 0;
+  }
+
+  /// {providerID, modelID} of the newest assistant message.
+  model() {
+    for (const m of this.rows().reverse()) if (m.role === "assistant" && m.info && m.info.providerID) return { providerID: m.info.providerID, modelID: m.info.modelID };
+    return null;
   }
 
   msg(id) {
@@ -115,13 +145,13 @@ export class Timeline {
   /// Render items in order.
   items() {
     const out = [];
-    const rows = [...this.messages.values()].sort((a, b) => a.order - b.order);
+    const rows = this.rows();
     const permByCall = new Map();
     for (const [, v] of this.perms) if (v.req.tool) permByCall.set(v.req.tool.callID, v);
     const used = new Set();
     for (const m of rows) {
       if (m.role === "user") {
-        const text = [...m.parts.values()].filter((x) => x.type === "text" && !x.synthetic).map((x) => x.text).join("\n");
+        const text = Timeline.userText(m);
         if (text.trim()) out.push({ kind: "user", id: m.id, text, chips: this.userChips.get(m.id) || [] });
         continue;
       }

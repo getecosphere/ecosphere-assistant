@@ -74,7 +74,7 @@ exports.start = (port) => {
     aborted = false;
     busy.add(ses.id);
     emit("session.status", { sessionID: ses.id, status: { type: "busy" } });
-    const m = addMessage(ses, "assistant");
+    const m = addMessage(ses, "assistant", { providerID: "anthropic", modelID: "claude-sonnet-5-5", tokens: { input: 5, output: 40, reasoning: 0, cache: { read: 52000, write: 0 } } });
     const stopped = () => aborted;
     try {
       if (/Draft an executive summary/.test(text)) {
@@ -128,17 +128,26 @@ exports.start = (port) => {
       req.on("close", () => sse.delete(res));
       return;
     }
-    if (p === "/session" && req.method === "POST") { const id = nid("ses"); sessions.set(id, { id, messages: [] }); return json(res, 200, { id, title: b.title || "new", time: { created: Date.now() } }); }
-    if (p === "/session" && req.method === "GET") return json(res, 200, [...sessions.values()].map((s) => ({ id: s.id })));
+    const view = (x) => ({ id: x.id, title: x.title || "New session - fake", directory: u.searchParams.get("directory"), time: x.time, tokens: { input: 10, output: 20, reasoning: 0, cache: { read: 1000, write: 0 } }, summary: { files: 0 }, ...(x.revert ? { revert: x.revert } : {}) });
+    if (p === "/session" && req.method === "POST") { const id = nid("ses"); const x = { id, messages: [], title: b.title, time: { created: Date.now(), updated: Date.now() } }; sessions.set(id, x); return json(res, 200, view(x)); }
+    if (p === "/session" && req.method === "GET") { const q = (u.searchParams.get("search") || "").toLowerCase(); return json(res, 200, [...sessions.values()].filter((x) => !q || (x.title || "").toLowerCase().includes(q)).sort((a, b) => b.time.updated - a.time.updated).map(view)); }
     if (p === "/session/status") return json(res, 200, Object.fromEntries([...busy].map((id) => [id, { type: "busy" }])));
     let m = p.match(/^\/session\/([^/]+)(?:\/(\w+))?$/);
     if (m) {
       const ses = sessions.get(m[1]);
       if (!ses) return json(res, 404, { error: "no session" });
+      if (!m[2] && req.method === "GET") return json(res, 200, view(ses));
+      if (!m[2] && req.method === "PATCH") { ses.title = b.title; return json(res, 200, view(ses)); }
+      if (m[2] === "fork") { const id = nid("ses"); const x = { id, messages: JSON.parse(JSON.stringify(ses.messages)), title: `${ses.title} (fork #1)`, time: { created: Date.now(), updated: Date.now() } }; sessions.set(id, x); return json(res, 200, view(x)); }
+      if (m[2] === "summarize") { addMessage(ses, "assistant", { summary: true }); return json(res, 200, true); }
+      if (m[2] === "revert") { ses.revert = { messageID: b.messageID }; return json(res, 200, view(ses)); }
+      if (m[2] === "unrevert") { delete ses.revert; return json(res, 200, view(ses)); }
       if (!m[2] && req.method === "DELETE") { sessions.delete(m[1]); return json(res, 200, true); }
       if (m[2] === "message") return json(res, 200, ses.messages);
       if (m[2] === "prompt_async" || m[2] === "command") {
         const parts = b.parts || [{ type: "text", text: `/${b.command} ${b.arguments || ""}` }];
+        if (!ses.title || /^New session/.test(ses.title)) ses.title = (b.parts ? b.parts[0].text : "").slice(0, 40) || "session";
+        ses.time.updated = Date.now();
         const um = addMessage(ses, "user");
         for (const part of parts) addPart(ses, um, part.type === "file" ? { ...part } : part);
         const text = parts.filter((x) => x.type === "text").map((x) => x.text).join("\n");
