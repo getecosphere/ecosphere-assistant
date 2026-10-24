@@ -1,116 +1,93 @@
 #!/bin/bash
+# Ecosphere Assistant — helper installer (macOS and Linux).
+# Registers the native messaging host for Chrome, Chromium, Brave, Edge, Vivaldi and Arc.
+# Run from the repo (uses native/host.js + lib.js), or as the self-contained helper-install.sh
+# (payload appended below the __PAYLOAD__ marker by build-helper.sh).
 set -euo pipefail
 
-HOST_NAME="com.opencode.sidebar"
-DIR="$(cd "$(dirname "$0")" && pwd)"
-EXT_DIR="$(cd "$DIR/.." && pwd)"
+HOST_NAME="com.ecosphere.assistant"
+EXT_ID="__EXT_ID__"     # replaced by build-helper.sh; computed from manifest.json when run from the repo
+INSTALL_DIR="$HOME/.ecosphere-assistant"
+SELF="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/$(basename "${BASH_SOURCE[0]}")"
+SRC="$(dirname "$SELF")"
 
-echo "== OpenCode Sidebar installer =="
+os="$(uname -s)"
+case "$os" in Darwin|Linux) ;; *) echo "Unsupported OS: $os (Windows via WSL is on the roadmap)"; exit 1 ;; esac
 
-OPENCODE_BIN="$(command -v opencode 2>/dev/null || true)"
-if [ -z "$OPENCODE_BIN" ]; then
-  for c in "$HOME/.opencode/bin/opencode" "/opt/homebrew/bin/opencode" "/usr/local/bin/opencode"; do
-    if [ -x "$c" ]; then OPENCODE_BIN="$c"; break; fi
-  done
-fi
-if [ -z "$OPENCODE_BIN" ]; then
-  echo "ERROR: 'opencode' binary not found."
-  echo "Install it first with:  curl -fsSL https://opencode.ai/install | bash"
-  exit 1
-fi
-echo "OpenCode: $OPENCODE_BIN"
+echo "== Ecosphere Assistant helper =="
 
+# node: the helper is a small Node program
 NODE_BIN="$(command -v node 2>/dev/null || true)"
 if [ -z "$NODE_BIN" ]; then
-  for c in "$HOME/node/bin/node" "/opt/homebrew/bin/node" "/usr/local/bin/node" "/usr/local/bin/bun"; do
-    if [ -x "$c" ]; then NODE_BIN="$c"; break; fi
+  for c in "$HOME/.local/bin/node" "$HOME/node/bin/node" /opt/homebrew/bin/node /usr/local/bin/node /usr/bin/node; do
+    [ -x "$c" ] && NODE_BIN="$c" && break
   done
 fi
 if [ -z "$NODE_BIN" ]; then
-  echo "ERROR: 'node' runtime not found."
-  echo "The native host needs Node.js. Install it from https://nodejs.org or via: brew install node"
+  echo "ERROR: Node.js (18+) not found. Install it from https://nodejs.org (or: brew install node / apt install nodejs), then run this again."
   exit 1
 fi
-echo "Node runtime: $NODE_BIN"
+echo "node: $NODE_BIN"
 
-DEFAULT_DIR="$HOME"
-for cand in "$HOME/ar-rahman/estates/getecosphere/frontend" "$HOME/getecosphere/frontend" "$HOME/estates/getecosphere/frontend"; do
-  if [ -d "$cand" ]; then DEFAULT_DIR="$cand"; break; fi
-done
-
-cat > "$DIR/config.json" <<EOF
-{
-  "opencode": "$OPENCODE_BIN",
-  "defaultPort": 4096,
-  "directory": "$DEFAULT_DIR"
-}
-EOF
-
-cat > "$DIR/host" <<EOF
-#!$NODE_BIN
-require("$DIR/host.js");
-EOF
-chmod +x "$DIR/host" "$DIR/host.js"
-
-HAS_KEY="$(node -e '
-const fs = require("fs");
-const m = JSON.parse(fs.readFileSync(process.argv[1], "utf8"));
-process.stdout.write(m.key ? "yes" : "no");
-' "$EXT_DIR/manifest.json")"
-
-if [ "$HAS_KEY" = "yes" ]; then
-  EXT_ID="$(node -e '
-const fs = require("fs"), crypto = require("crypto");
-const m = JSON.parse(fs.readFileSync(process.argv[1], "utf8"));
-const pub = Buffer.from(m.key, "base64");
-process.stdout.write(
-  crypto.createHash("sha256").update(pub).digest().slice(0, 16).toString("base64")
-    .replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, ""),
-);
-' "$EXT_DIR/manifest.json")"
-  echo "Extension ID (from manifest key): $EXT_ID"
+mkdir -p "$INSTALL_DIR"
+if [ -f "$SRC/lib.js" ] && [ -f "$SRC/host.js" ]; then
+  cp "$SRC/lib.js" "$SRC/host.js" "$INSTALL_DIR/"
 else
-  echo ""
-  echo "This manifest has no \"key\", so the extension ID cannot be computed."
-  echo "Copy the ID shown in chrome://extensions (or in the side panel's Step 1)"
-  echo "and paste it below. Press Enter to abort."
-  read -r -p "Extension ID: " EXT_ID || true
-  EXT_ID="$(echo "$EXT_ID" | tr -d '[:space:]')"
-  if [ -z "$EXT_ID" ]; then
-    echo "No ID provided. Aborting."
-    exit 1
-  fi
-  echo "Using extension ID: $EXT_ID"
+  sed -n '/^__PAYLOAD__$/,$p' "$SELF" | tail -n +2 | base64 -d | tar xz -C "$INSTALL_DIR"
 fi
 
-mkdir -p "$HOME/Library/Application Support/Google/Chrome/NativeMessagingHosts" \
-  "$HOME/Library/Application Support/Google/Chrome Canary/NativeMessagingHosts" \
-  "$HOME/Library/Application Support/Chromium/NativeMessagingHosts" \
-  "$HOME/Library/Application Support/BraveSoftware/Brave-Browser/NativeMessagingHosts" \
-  "$HOME/Library/Application Support/Microsoft Edge/NativeMessagingHosts" \
-  "$HOME/Library/Application Support/Arc/User Data/NativeMessagingHosts"
+if [ "$EXT_ID" = "__EXT_ID__" ]; then
+  EXT_ID="$("$NODE_BIN" -e '
+    const fs = require("fs"), c = require("crypto");
+    const m = JSON.parse(fs.readFileSync(process.argv[1], "utf8"));
+    const hex = c.createHash("sha256").update(Buffer.from(m.key, "base64")).digest("hex").slice(0, 32);
+    process.stdout.write([...hex].map((x) => String.fromCharCode(97 + parseInt(x, 16))).join(""));
+  ' "$SRC/../manifest.json")"
+fi
+echo "extension id: $EXT_ID"
 
-cat > "$HOME/Library/Application Support/Google/Chrome/NativeMessagingHosts/$HOST_NAME.json" <<EOF
+cat > "$INSTALL_DIR/host" <<LAUNCH
+#!$NODE_BIN
+require("$INSTALL_DIR/host.js");
+LAUNCH
+chmod +x "$INSTALL_DIR/host"
+
+manifest() {
+  cat <<JSON
 {
   "name": "$HOST_NAME",
-  "description": "Starts the OpenCode web server for the OpenCode Sidebar extension",
-  "path": "$DIR/host",
+  "description": "Ecosphere Assistant helper: runs eco and OpenCode for the side panel",
+  "path": "$INSTALL_DIR/host",
   "type": "stdio",
   "allowed_origins": ["chrome-extension://$EXT_ID/"]
 }
-EOF
+JSON
+}
 
-for dir in "Google/Chrome Canary" "Chromium" "BraveSoftware/Brave-Browser" "Microsoft Edge" "Arc/User Data"; do
-  cp "$HOME/Library/Application Support/Google/Chrome/NativeMessagingHosts/$HOST_NAME.json" \
-    "$HOME/Library/Application Support/$dir/NativeMessagingHosts/$HOST_NAME.json" 2>/dev/null || true
+if [ "$os" = "Darwin" ]; then
+  base="$HOME/Library/Application Support"
+  browsers=("Google/Chrome" "Google/Chrome Beta" "Google/Chrome Canary" "Chromium" "BraveSoftware/Brave-Browser" "Microsoft Edge" "Vivaldi" "Arc/User Data")
+else
+  base="${XDG_CONFIG_HOME:-$HOME/.config}"
+  browsers=("google-chrome" "google-chrome-beta" "chromium" "BraveSoftware/Brave-Browser" "microsoft-edge" "vivaldi")
+fi
+
+n=0
+for b in "${browsers[@]}"; do
+  if [ -d "$base/$b" ]; then
+    mkdir -p "$base/$b/NativeMessagingHosts"
+    manifest > "$base/$b/NativeMessagingHosts/$HOST_NAME.json"
+    echo "registered: $b"
+    n=$((n + 1))
+  fi
 done
+if [ "$n" -eq 0 ]; then
+  d="${browsers[0]}"
+  mkdir -p "$base/$d/NativeMessagingHosts"
+  manifest > "$base/$d/NativeMessagingHosts/$HOST_NAME.json"
+  echo "registered: $d (no browser profile found yet)"
+fi
 
-echo ""
-echo "Done! Native host registered for Chrome (and Brave / Edge / Arc / Chromium if present)."
-echo ""
-echo "Next steps:"
-echo "  1. Open chrome://extensions, enable Developer mode, click 'Load unpacked',"
-echo "     and select: $EXT_DIR"
-echo "  2. Click the OpenCode Sidebar icon. The server auto-starts on first open."
-echo ""
-echo "Server log: $DIR/opencode-server.log"
+echo
+echo "Done. Reopen the Ecosphere Assistant panel and press \"Check again\"."
+exit 0

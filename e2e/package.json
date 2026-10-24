@@ -1,0 +1,13 @@
+{
+  "name": "ecosphere-assistant-e2e",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "test": "playwright test",
+    "unit": "node --test ../native/test/ ../js/test/"
+  },
+  "devDependencies": {
+    "@playwright/test": "1.49.1",
+    "@axe-core/playwright": "4.10.1"
+  }
+}

@@ -1,0 +1,32 @@
+import { test, expect } from "../fixtures.js";
+import { compare, PANEL } from "../shots.js";
+
+test("phase 3 screenshots next to the design", async ({ app, env, ctx }) => {
+  env.approve();
+  const { panel, page } = app;
+  await panel.reload();
+  await panel.locator('[data-act="use-cli"]').click();
+  await panel.locator("textarea").waitFor();
+  await panel.setViewportSize({ width: 400, height: 822 });
+  await page.bringToFront();
+  await expect(panel.locator('[data-card="context"]')).toContainText("library");
+  await page.evaluate(() => window.boom());
+  await panel.evaluate(async () => { const a = await import("./js/app.js"); await a.refreshTab(); });
+  await panel.locator('[data-act="pick"]').click();
+  await expect(page.getByText("Click an element")).toBeVisible();
+  await page.locator(".card-cta").first().hover();
+  await compare(ctx, "phase3", "08-picking", await panel.screenshot(), "08-D-picking.png", PANEL);
+  await page.bringToFront();
+  await page.locator(".card-cta").first().click();
+  await expect(panel.locator("[data-el]")).toContainText("card-cta");
+  await compare(ctx, "phase3", "09-picked", await panel.screenshot(), "09-D-picked.png", PANEL);
+  await page.bringToFront();
+  const ta = panel.locator("textarea");
+  await ta.fill("Make this the primary button");
+  await ta.press("Enter");
+  await expect(panel.locator('[data-kind="done"]')).toBeVisible();
+  await panel.locator('[data-act="reload-tab"]').click();
+  await expect(panel.getByText("Tab reloaded.")).toBeVisible();
+  await compare(ctx, "phase3", "10-applied", await panel.screenshot(), "10-D-applied.png", PANEL);
+  await page.bringToFront();
+});

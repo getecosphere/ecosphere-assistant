@@ -1,27 +1,59 @@
-# Ecosphere Assistant
+# Ecosphere Assistant 2.0
 
-A Chrome extension that puts your Ecosphere workspace in a side panel — from first install to production, all in one window. Guided setup, an AI coding agent, the LXS marketplace, and deployment controls, next to the page you're reading.
+Chrome side panel: your **/project dashboard** next to the page you are on, plus **a coding agent that sees that page**
+(our own chat UI on the OpenCode server API — no OpenCode iframe). Everything runs on your machine.
 
-It detects what you need, installs it for you with live progress, and connects your project automatically. Everything runs locally; your code never leaves your machine.
+- **Agent** — chat on `opencode serve`: steps, diffs, permission cards (once / always for this project / reject), Stop, `/` commands,
+  `@` files, screenshot attach. **Page-aware**: the context card (tab URL → likely source file), the **element picker**
+  (⌘⇧E / Ctrl⇧E, Esc cancels), console errors, reload-after-change.
+- **QA** — this project's QA requests, capture the tab into one, **Work on it** (`eco pm qa take` → agent session → steps mirrored to
+  /project → **Send to QA**). **Project** — hosting card, deploy of the local build (gated by plan). **Summarize session** → `eco pm report`.
+  QA/Project show only when the project is linked to /project (`eco pm link`) or `prefs.pm` is on.
+- **Compose** — LXS of `ecompose.yml` (+ `eco.lock` signing), add/remove through `eco`, `eco up dev`.
+- **Sign-in = the eco CLI on this machine.** The extension never stores a key or token. Google sign-in is `eco login` (device login).
 
-## Install (3 steps)
+## Install
 
-1. **Load the extension** — open `chrome://extensions`, enable *Developer mode*, click *Load unpacked*, and choose this folder.
-2. **Enable the helper** — in the `native/` folder, double-click `install.command`. This registers a small native helper and only needs to run once.
-3. **Open the sidebar** — click the extension icon. It installs OpenCode if missing, asks for your project folder, and connects automatically.
+1. Install the extension (Chrome Web Store, or `chrome://extensions` → Developer mode → *Load unpacked* → this folder).
+2. Open the panel: the checklist installs/detects the rest. The helper is one command (macOS and Linux, needs Node 18+):
+   `curl -fsSL https://getecosphere.com/downloads/helper-install.sh | bash` — from a checkout: `native/install.sh`.
+   Windows: not supported yet (WSL is on the roadmap).
 
-See [getecosphere.com/install](https://getecosphere.com/install) for the guided version.
+## Architecture
 
-## How it works
+```
+side panel (UI, holds no secrets)
+  ├─ native messaging ─▶ helper (native/lib.js: a FIXED allowlist of actions, validated args, argv only — no shell)
+  │                        ├─ eco …           account, pm, deploy, lxs (the CLI's own login)
+  │                        └─ opencode serve  one per project, 127.0.0.1, random port + per-launch password
+  ├─ fetch 127.0.0.1:<port> ─▶ OpenCode API (sessions, prompt_async, /event SSE, permissions, abort)
+  └─ chrome.scripting (on demand) ─▶ page: picker, console hook, toast
+```
 
-- `sidepanel.*` — the Chrome side panel UI and a first-run wizard.
-- `native/host.js` — a native messaging host that checks for OpenCode, runs the official installer (`curl https://opencode.ai/install | bash`) with streamed progress, and starts `opencode serve --port 4096` in your project folder.
-- `native/install.command` / `install.sh` — one-time registration of the native host (macOS).
-- The extension ID is pinned via the `key` in `manifest.json`, so the native host origin stays valid across reloads.
-- `store/` — Chrome Web Store listing assets (screenshots, copy, store-ready zip).
+Permissions: `sidePanel nativeMessaging storage tabs activeTab scripting`; hosts only `127.0.0.1`, `localhost`, `getecosphere.com`.
+`optional_host_permissions: <all_urls>` is asked at first use (per-site page access, and screenshots — `captureVisibleTab`
+needs `activeTab` or `<all_urls>`). No content script.
+
+## Layout
+
+`manifest.json` · `background.js` · `sidepanel.html/css` · `js/` (app, bridge, oc, session, agent, page, qa, project, compose, onboarding, main) ·
+`page/picker.js` (injected on demand) · `native/` (helper: `lib.js`, `host.js`, `install.sh`, `uninstall.sh`, `build-helper.sh`) ·
+`store/` (listing, privacy, screenshots, `package.sh`) · `e2e/` (Playwright + fakes) · `docs/handover/` (the design brief).
+
+## Tests
+
+```
+cd e2e && npm install && npx playwright install chromium
+npx playwright test                  # loads the unpacked extension; FAKE eco + FAKE opencode, never a real account
+node --test ../native/test ../js/test # helper (allowlist, Linux/macOS installer) and the event reducer
+node make-icons.mjs                  # regenerate the LED icons
+```
+
+## Release
+
+`store/package.sh` builds `store/ecosphere-assistant-cws.zip` and `helper-install.sh` (host it at
+`https://getecosphere.com/downloads/helper-install.sh`). Not published until the owner says so.
 
 ## Uninstall
 
-- Remove the extension from `chrome://extensions`.
-- Run `native/uninstall.sh` to remove the helper registration.
-- Stop the local server with `pkill -f "opencode serve"`.
+Remove the extension; run `native/uninstall.sh` (stops the OpenCode servers it started, removes the registration).

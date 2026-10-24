@@ -1,0 +1,74 @@
+#!/usr/bin/env node
+// Fake `eco` for the extension e2e. Scripted by $FAKE_STATE (json), every call logged to $FAKE_ECO_LOG.
+const fs = require("fs");
+const path = require("path");
+const args = process.argv.slice(2);
+const statePath = process.env.FAKE_STATE;
+const logPath = process.env.FAKE_ECO_LOG;
+if (!statePath || !logPath) { console.error("fake eco: FAKE_STATE/FAKE_ECO_LOG not set"); process.exit(99); }
+const rd = () => JSON.parse(fs.readFileSync(statePath, "utf8"));
+const wr = (s) => fs.writeFileSync(statePath, JSON.stringify(s, null, 2));
+fs.appendFileSync(logPath, JSON.stringify({ cwd: process.cwd(), args }) + "\n");
+const st = rd();
+const out = (x) => console.log(typeof x === "string" ? x : JSON.stringify(x));
+const fail = (m, code = 1) => { console.error(m); process.exit(code); };
+const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
+const [a, b, c] = args;
+
+(async () => {
+  if (a === "--version") return out("eco 0.0.0-fake");
+  if (a === "whoami") return out(st.who.signedIn ? st.who : { signedIn: false });
+  if (a === "login") {
+    console.log("Sign-in is Google only — opening your browser…");
+    console.log(`  ${st.loginUrl}`);
+    for (let i = 0; i < 300; i++) {
+      if (fs.existsSync(statePath + ".login")) {
+        const s = rd(); s.who = { signedIn: true, email: "tester@example.com", apiUrl: "http://fake", tier: s.nextTier || "platform" }; wr(s);
+        return console.log("Signed in.");
+      }
+      await sleep(100);
+    }
+    fail("timed out");
+  }
+  if (a === "logout") { const s = rd(); s.who = { signedIn: false }; wr(s); return console.log("logged out"); }
+  if (a === "plan") return out(st.plan);
+  if (a === "status") return out(st.status);
+  if (a === "lxs" && (b === "add" || b === "remove")) {
+    const f = path.join(process.cwd(), "ecompose.yml");
+    let src = fs.readFileSync(f, "utf8");
+    const name = c.split("@")[0];
+    if (b === "add") src += `  ${name}:\n    lxs: ${name}@${c.includes("@") ? c.split("@")[1] : "1.0.0"}\n`;
+    else src = src.replace(new RegExp(`  ${name}:\\n    lxs: [^\\n]*\\n`), "");
+    fs.writeFileSync(f, src);
+    return console.log(`${b} ${c} ok`);
+  }
+  if (a === "up" && b === "dev") {
+    for (const l of ["building…", "gateway online", "6/6 services online"]) { console.log(l); await sleep(150); }
+    await sleep(60000);
+    return;
+  }
+  if (a === "deploy") {
+    if (st.deployFails) { console.log("building…"); fail("boom", 3); }
+    for (const l of ["building frontend", "shipping release", "live: https://remoteworker.id"]) { console.log(l); await sleep(150); }
+    return;
+  }
+  if (a === "pm") {
+    if (b === "status") {
+      if (!st.pm || !st.pm.linked) fail("This estate (`x`) is not linked to a project yet. Run `eco pm link` in this folder first.");
+      return out({ estate: "x", project: "p1", dashboard: "https://getecosphere.com/project/x", linked: true, qaWaiting: (st.qa || []).filter((q) => q.phase === "wait").length, qaWorking: 0 });
+    }
+    if (b === "link") { const s = rd(); s.pm = { linked: true }; wr(s); return console.log("Linked."); }
+    if (b === "qa" && !c) return out(st.qa || []);
+    if (b === "qa" && c === "--json") return out(st.qa || []);
+    if (b === "qa" && c === "take") {
+      const n = args[3];
+      const d = path.join(process.cwd(), ".eco", "qa", n);
+      fs.mkdirSync(d, { recursive: true });
+      fs.writeFileSync(path.join(d, "library.png"), Buffer.from("iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNkYPhfDwAChwGA60e6kgAAAABJRU5ErkJggg==", "base64"));
+      return console.log(`# QA #${n}\n\n**Actual:** /library still opens and script tags in comments run.\n**Expected:** /library 404, comment input filtered.\n\nScreenshots: .eco/qa/${n}/library.png`);
+    }
+    if (b === "qa" && c === "new" && st.qaNewUnsupported) fail("Unknown `eco pm qa` command: new");
+    return console.log("ok");
+  }
+  fail(`fake eco: unhandled ${args.join(" ")}`, 98);
+})();

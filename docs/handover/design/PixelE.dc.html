@@ -1,0 +1,99 @@
+<!doctype html>
+<html lang="id">
+<head>
+<meta charset="utf-8">
+<title>Komponen E piksel</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<style>
+body{margin:0}
+</style>
+</helmet>
+<div role="img" aria-label="{{label}}" style="{{boxStyle}}">
+  <div style="{{gridStyle}}">
+    <sc-for list="{{cells}}" as="c" hint-placeholder-count="20">
+      <span style="{{c.wrap}}"><span style="{{c.dot}}"></span></span>
+    </sc-for>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"variant":{"editor":"int","min":1,"max":10,"default":4},"size":{"editor":"int","min":12,"max":600,"default":160},"dark":{"editor":"boolean","default":false},"anim":{"editor":"boolean","default":true},"progress":{"editor":null,"default":-1},"dot":{"editor":"range","min":0.2,"max":1,"step":0.05,"default":1},"$preview":{"width":160,"height":160}}'>
+class Component extends DCLogic {
+  constructor(props) { super(props); this.state = { t: 0 }; }
+  componentDidMount() { this.iv = setInterval(() => { if (this.props.anim !== false && (this.props.progress == null || this.props.progress < 0)) this.setState({ t: this.state.t + 1 }); }, 140); }
+  componentWillUnmount() { clearInterval(this.iv); }
+  mix(a, b, k) {
+    const p = h => [parseInt(h.slice(1, 3), 16), parseInt(h.slice(3, 5), 16), parseInt(h.slice(5, 7), 16)];
+    const x = p(a), y = p(b);
+    return 'rgb(' + x.map((v, i) => Math.round(v + (y[i] - v) * k)).join(',') + ')';
+  }
+  renderVals() {
+    const v = Math.max(1, Math.min(10, this.props.variant ?? 1));
+    const size = this.props.size ?? 160;
+    const dark = !!this.props.dark;
+    const anim = this.props.anim !== false;
+    const dotScale = Math.max(0.2, Math.min(1, this.props.dot ?? 1));
+    const t = this.state.t;
+    const COL = { V: '#7048F5', B: '#2B8CF5', G: '#18B47B', C: '#F2593A' };
+    const ink = dark ? '#f5f2fa' : '#17141d';
+    const cols = v === 5 ? 3 : 4;
+    const pat = v === 5
+      ? ['VBB', 'V..', 'VG.', 'V..', 'VCC']
+      : ['VBBB', 'V...', 'VGG.', 'V...', 'VCCC'];
+    // drawing order: spine top→bottom, then top arm, middle arm, bottom arm
+    const order = [];
+    for (let r = 0; r < 5; r++) order.push(r * cols);
+    for (let c = 1; c < cols; c++) if (pat[0][c] !== '.') order.push(c);
+    for (let c = 1; c < cols; c++) if (pat[2][c] !== '.') order.push(2 * cols + c);
+    for (let c = 1; c < cols; c++) if (pat[4][c] !== '.') order.push(4 * cols + c);
+    const n = order.length;
+    const prog = this.props.progress;
+    const controlled = prog != null && prog >= 0;
+    const cycle = n + 10;
+    const shown = controlled ? prog : (anim ? Math.min(n, t % cycle) : n);
+    const gradStops = ['#7048F5', '#2B8CF5', '#18B47B', '#F2593A'];
+    const gradAt = k => { const s = k * 3, i = Math.min(2, Math.floor(s)); return this.mix(gradStops[i], gradStops[i + 1], s - i); };
+
+    const isTerm = v === 8;
+    const pad = isTerm ? size * 0.16 : size * 0.08;
+    const inner = size - pad * 2;
+    const cell = inner / 5 * 0.84;
+    const gap = inner / 5 * 0.16;
+    const cells = [];
+    for (let r = 0; r < 5; r++) for (let c = 0; c < cols; c++) {
+      const idx = r * cols + c, g = pat[r][c], on = g !== '.';
+      const ord = order.indexOf(idx);
+      const lit = on && (ord < shown || (!anim && !controlled));
+      let bg = 'transparent', radius = '28%', scale = 1, op = 1, border = 'none';
+      const ghost = dark ? 'rgba(245,242,250,.10)' : 'rgba(23,20,29,.07)';
+      if (v === 1 || v === 5) { bg = on ? COL[g] : 'transparent'; }
+      if (v === 2) { bg = on ? COL[g] : 'transparent'; radius = '50%'; }
+      if (v === 3) { bg = on ? ink : 'transparent'; radius = '50%'; if (on && ord === (controlled ? Math.max(0, prog - 1) : t % n)) bg = COL.V; }
+      if (v === 4) { radius = '50%'; bg = on ? (lit ? COL[g] : ghost) : ghost; scale = dotScale; }
+      if (v === 6) { bg = on ? gradAt(ord / (n - 1)) : 'transparent'; }
+      if (v === 7) { bg = on ? (g === 'V' ? ink : COL[g]) : 'transparent'; radius = g === 'V' ? '22%' : '50%'; }
+      if (v === 8) { bg = on ? '#7be0a9' : 'transparent'; radius = '18%'; if (on && idx === 4 * cols + 3) { bg = '#c9bcff'; op = (anim && !controlled) ? (t % 6 < 3 ? 1 : 0.15) : 1; } }
+      if (v === 9) { radius = '30%'; border = (Math.max(1, size / 110)) + 'px solid ' + (dark ? 'rgba(245,242,250,.22)' : 'rgba(23,20,29,.16)'); bg = on && lit ? COL[g] : 'transparent'; if (on && lit) border = 'none'; }
+      if (v === 10) { radius = '50%'; bg = on ? COL[g] : 'transparent'; scale = anim && !controlled ? 0.42 + 0.58 * Math.abs(Math.sin(t * 0.32 + idx * 1.27)) : [1, .8, .6, .9, .7][r]; }
+      if (on && v !== 3 && v !== 4 && v !== 9 && v !== 10 && v !== 8 && !lit) { op = 0.12; scale = 0.6; }
+      if (v === 3 && on && !lit) { op = 0.18; }
+      if (v === 8 && on && !lit) { op = 0.12; }
+      cells.push({
+        wrap: 'display: grid; place-items: center; width: ' + cell + 'px; height: ' + cell + 'px;',
+        dot: 'display: block; width: 100%; height: 100%; box-sizing: border-box; border-radius: ' + radius + '; background: ' + bg + '; border: ' + border + '; opacity: ' + op + '; transform: scale(' + scale + '); transition: opacity .2s, transform .2s, background .2s;'
+      });
+    }
+    return {
+      cells,
+      label: 'Logo E piksel varian ' + v,
+      boxStyle: 'width: ' + size + 'px; height: ' + size + 'px; box-sizing: border-box; display: grid; place-items: center; border-radius: ' + (isTerm ? size * 0.24 : 0) + 'px; background: ' + (isTerm ? '#17131f' : 'transparent') + ';',
+      gridStyle: 'display: grid; grid-template-columns: repeat(' + cols + ', ' + cell + 'px); grid-auto-rows: ' + cell + 'px; gap: ' + gap + 'px;'
+    };
+  }
+}
+</script>
+</body>
+</html>

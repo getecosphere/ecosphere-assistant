@@ -1,26 +1,36 @@
 {
   "manifest_version": 3,
   "name": "Ecosphere Assistant",
-  "version": "1.8.0",
-  "description": "Your estate in a sidebar: guided setup, AI coding, compose your ecompose.yml, deploy — plus Ecosphere Projects for QA and Kanban.",
+  "version": "2.0.0",
+  "description": "Your /project dashboard and a coding agent that sees the page you are on, in Chrome's side panel. Everything runs on your machine.",
   "homepage_url": "https://getecosphere.com/install",
-  "minimum_chrome_version": "114",
+  "minimum_chrome_version": "116",
   "key": "MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAtpV1WIUu+bqpOr/Hb9saNXGAS4McNQdDKDDLCwpLj98hLZdr7Qskfm+GxEHt2SMa/jWICUTDRhJTHR+TMf38FwkK8NRVj9Mn1wdJdQXvEq1LtC/7KlThiufJKY9JC3wl+gWAlHkkLc8gwLnSBNjc7QIX8DqnjkaJUos9QrdnaEcSSVPvzXK8OL6aCyWBdK2HoWLtSZI5LfldZegrZjGLLynDiauIduDCGn8RFaolEioq1H61VOwP/EL3eDsUPZlOKaz+T5+649yHIzIXXE6vQE3c1ULVfEh+YJZHGvDew7Gu5CrIsMUJzj9qjHu9xA3h1CjmBmodNOVWnaoyEiMHLQIDAQAB",
-  "permissions": ["sidePanel", "nativeMessaging", "storage", "tabs", "downloads", "activeTab"],
+  "permissions": [
+    "sidePanel",
+    "nativeMessaging",
+    "storage",
+    "tabs",
+    "activeTab",
+    "scripting"
+  ],
   "host_permissions": [
-    "http://127.0.0.1:*/*",
-    "http://localhost:*/*",
-    "https://getecosphere.com/*",
-    "https://project.getecosphere.com/*",
-    "https://*.jogjaitcamp.com/*"
+    "http://127.0.0.1/*",
+    "http://localhost/*",
+    "https://getecosphere.com/*"
   ],
-  "content_scripts": [
-    {
-      "matches": ["<all_urls>"],
-      "js": ["estate-detect.js"],
-      "run_at": "document_idle"
+  "optional_host_permissions": [
+    "<all_urls>"
+  ],
+  "commands": {
+    "pick-element": {
+      "suggested_key": {
+        "default": "Ctrl+Shift+E",
+        "mac": "Command+Shift+E"
+      },
+      "description": "Pick an element on the page for the agent"
     }
-  ],
+  },
   "icons": {
     "16": "icons/icon16.png",
     "32": "icons/icon32.png",
@@ -31,7 +41,7 @@
     "service_worker": "background.js"
   },
   "action": {
-    "default_title": "Toggle OpenCode sidebar",
+    "default_title": "Ecosphere Assistant",
     "default_icon": {
       "16": "icons/icon16.png",
       "32": "icons/icon32.png",

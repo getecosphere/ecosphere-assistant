@@ -1,0 +1,320 @@
+<!doctype html>
+<html lang="id">
+<head>
+<meta charset="utf-8">
+<title>E · Linimasa sesi</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&amp;family=Manrope:wght@500;600;700;800&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0}
+.win{width:1440px;height:900px;display:flex;flex-direction:column;background:#e9e5ee;font-family:Manrope,ui-sans-serif,system-ui,sans-serif;color:#17141d;font-size:14px;line-height:1.5;-webkit-font-smoothing:antialiased;overflow:hidden}
+.mono{font-family:'DM Mono',ui-monospace,monospace}
+code{font-family:'DM Mono',ui-monospace,monospace;font-size:.92em}
+.tabs{display:flex;align-items:flex-end;gap:2px;height:38px;padding:0 12px;background:#e3dfe8}
+.tl{display:flex;gap:7px;align-items:center;height:38px;margin-right:12px}
+.tl i{width:11px;height:11px;border-radius:50%;background:#ff5f57}.tl i:nth-child(2){background:#febc2e}.tl i:nth-child(3){background:#28c840}
+.tab{display:flex;align-items:center;gap:8px;height:30px;padding:0 14px;border-radius:9px 9px 0 0;background:#fff;font-size:12.5px;font-weight:600;min-width:210px}
+.tab.off{background:transparent;color:#665f6e;font-weight:500;min-width:160px}
+.fav{width:14px;height:14px;border-radius:4px;background:#c9a227}
+.addr{display:flex;align-items:center;gap:10px;height:40px;padding:0 12px;background:#fff;border-bottom:1px solid #ded9e1}
+.url{flex:1;display:flex;align-items:center;gap:8px;height:28px;padding:0 12px;border-radius:999px;background:#f1eef4;font-size:13px;color:#3a3440}
+.ext{display:grid;place-items:center;width:30px;height:28px;border-radius:7px}
+.ext.on{background:#e9e3ff}
+.body{flex:1;display:flex;min-height:0}
+.page{flex:1;min-width:0;position:relative;overflow:hidden;background:#fff}
+.panel{position:relative;width:400px;flex:none;display:flex;flex-direction:column;min-height:0;background:#f7f6f2}
+.ph{display:flex;align-items:center;gap:6px;height:48px;padding:0 10px 0 12px;border-bottom:1px solid #ded9e1;background:#fff;flex:none}
+.projbtn{display:inline-flex;align-items:center;gap:6px;height:30px;padding:0 6px;border:0;border-radius:8px;background:none;font:700 13.5px Manrope,sans-serif;color:#17141d;cursor:pointer}
+.projbtn:hover{background:#f3f0f6}
+.chip{display:inline-flex;align-items:center;height:18px;padding:0 6px;border-radius:5px;font:500 10.5px 'DM Mono',monospace;white-space:nowrap}
+.c-ok{background:#e0f2e8;color:#198653}.c-br{background:#e9e3ff;color:#5b3fd6}.c-w{background:#fdf0dd;color:#b45d09}.c-mut{background:#efecf8;color:#665f6e}.c-bad{background:#fde4e4;color:#b42318}
+.grow{flex:1}
+.av{display:grid;place-items:center;width:28px;height:28px;border:0;border-radius:50%;background:#17141d;color:#f7f6f2;font:700 10px Manrope,sans-serif;cursor:pointer;flex:none}
+.ib{display:grid;place-items:center;width:30px;height:30px;border:0;border-radius:8px;background:none;color:#665f6e;cursor:pointer;flex:none}
+.ib:hover{background:#f3f0f6;color:#17141d}
+.ctx{display:flex;align-items:center;gap:6px;padding:7px 12px;border-bottom:1px solid #ded9e1;background:#faf9fc;font:500 11.5px 'DM Mono',monospace;color:#8d8493;white-space:nowrap;overflow:hidden;flex:none}
+.ctx b{color:#3a3440;font-weight:500}
+.scroll{flex:1;min-height:0;overflow:auto;padding:12px;display:flex;flex-direction:column;gap:10px}
+.scroll>*{flex:none}
+.lbl{font:500 10.5px 'DM Mono',monospace;letter-spacing:.06em;text-transform:uppercase;color:#8d8493}
+.card{border:1px solid #ded9e1;border-radius:10px;background:#fff}
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:6px;height:30px;padding:0 12px;border:0;border-radius:8px;background:#17141d;color:#f7f6f2;font:700 12.5px Manrope,sans-serif;cursor:pointer;white-space:nowrap}
+.btn.g{background:#fff;color:#17141d;border:1px solid #ded9e1}
+.btn.br{background:#5b3fd6;color:#fff}
+.btn:disabled{opacity:.45;cursor:default}
+.mu{align-self:flex-end;max-width:88%;padding:9px 12px;border-radius:12px 12px 4px 12px;background:#17141d;color:#f7f6f2;font-size:13.5px}
+.mu .chips{display:flex;flex-wrap:wrap;gap:4px;margin-top:6px}
+.mu .chips span{padding:1px 6px;border-radius:5px;background:rgba(255,255,255,.14);font:500 10.5px 'DM Mono',monospace}
+.mt{font-size:13.5px;color:#2a2530}
+.st{display:grid;grid-template-columns:14px 48px minmax(0,1fr) auto;gap:8px;align-items:center;padding:6px 10px;border:1px solid #ded9e1;border-radius:8px;background:#fff;font:12px 'DM Mono',monospace}
+.st .t{color:#5b3fd6}
+.st .a{color:#3a3440;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.st .m{color:#8d8493}
+.df{border:1px solid #ded9e1;border-radius:8px;background:#fff;overflow:hidden}
+.df .dh{display:flex;align-items:center;gap:8px;padding:6px 10px;border-bottom:1px solid #ece8ef;font:500 12px 'DM Mono',monospace}
+.df .pre{padding:4px 0;font:11.5px/1.6 'DM Mono',monospace;background:#fbfafc}
+.df .pre div{padding:0 10px;white-space:pre;overflow:hidden;text-overflow:ellipsis}
+.dl-add{background:#e8f6ee;color:#14532d}.dl-del{background:#fdecec;color:#7f1d1d}.dl-ctx{color:#665f6e}
+.pm{padding:10px 12px;border:1px solid #ecd3ad;border-radius:10px;background:#fdf6ec;display:flex;flex-direction:column;gap:8px}
+.dn{padding:12px;border:1px solid #bfe3cf;border-radius:10px;background:#f1faf5;display:flex;flex-direction:column;gap:6px}
+.comp{border-top:1px solid #ded9e1;background:#fff;padding:10px 12px 12px;display:flex;flex-direction:column;gap:8px;flex:none}
+.cchips{display:flex;flex-wrap:wrap;gap:6px}
+.cc{display:inline-flex;align-items:center;gap:5px;height:24px;padding:0 8px;border:1px solid #ded9e1;border-radius:999px;background:#fff;font:500 11.5px 'DM Mono',monospace;color:#3a3440;cursor:pointer}
+.cc.on{border-color:#5b3fd6;background:#f4f1ff;color:#5b3fd6}
+.ta{width:100%;min-height:56px;resize:none;border:1px solid #ded9e1;border-radius:10px;padding:9px 11px;font:14px/1.45 Manrope,sans-serif;color:#17141d;background:#fff;box-sizing:border-box}
+.ta:focus{outline:2px solid #5b3fd6;outline-offset:0;border-color:transparent}
+.crow{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.menu{position:absolute;top:44px;right:10px;z-index:30;width:260px;padding:6px;border:1px solid #ded9e1;border-radius:12px;background:#fff;box-shadow:0 18px 40px rgba(23,20,29,.16)}
+.mi{display:flex;align-items:center;gap:8px;width:100%;height:34px;padding:0 10px;border:0;border-radius:8px;background:none;font:600 13px Manrope,sans-serif;color:#17141d;cursor:pointer;text-align:left}
+.mi:hover{background:#f3f0f6}
+.seg{display:flex;gap:2px;padding:3px;border-radius:9px;background:#f1eef4}
+.seg button{flex:1;height:26px;border:0;border-radius:7px;background:none;font:600 12px Manrope,sans-serif;color:#665f6e;cursor:pointer}
+.seg button[aria-pressed="true"]{background:#fff;color:#17141d;box-shadow:0 1px 2px rgba(0,0,0,.08)}
+.ptabs{display:flex;gap:2px;padding:0 8px;border-bottom:1px solid #ded9e1;background:#fff;flex:none}
+.ptabs button{position:relative;height:36px;padding:0 10px;border:0;background:none;font:600 13px Manrope,sans-serif;color:#665f6e;cursor:pointer}
+.ptabs button[aria-selected="true"]{color:#17141d}
+.ptabs button[aria-selected="true"]::after{content:"";position:absolute;left:8px;right:8px;bottom:-1px;height:2px;background:#17141d;border-radius:2px}
+.row{display:flex;align-items:center;gap:10px;padding:10px 12px;border-bottom:1px solid #ece8ef}
+.pg-h{display:flex;align-items:center;gap:14px;height:56px;padding:0 32px;border-bottom:1px solid #eee}
+.pg-logo{width:26px;height:26px;border-radius:7px;background:#c9a227}
+.pg-n{height:9px;border-radius:5px;background:#e7e3ea}
+.pg-b{padding:30px 32px}
+.pg-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:18px;margin-top:20px}
+.pg-card{position:relative;border:1px solid #eee;border-radius:12px;padding:14px;display:flex;flex-direction:column;gap:10px}
+.pg-img{height:96px;border-radius:8px;background:#f1eef4}
+.pg-cta{align-self:flex-start;height:30px;padding:0 14px;border:0;border-radius:8px;background:#f1eef4;color:#3a3440;font:600 12.5px Manrope,sans-serif}
+</style>
+</helmet>
+<div class="win">
+  <div class="tabs"><div class="tl"><i></i><i></i><i></i></div>
+    <div class="tab"><span class="fav"></span>Library · Remote Worker</div><div class="tab off"><span class="fav" style="background:#5b3fd6"></span>/project · Ecosphere</div><div class="tab off">localhost:20032</div></div>
+  <div class="addr"><span style="color:#8d8493">← → ↻</span><div class="url"><svg aria-hidden="true" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#8d8493" stroke-width="2.4"><rect x="5" y="11" width="14" height="10" rx="2"></rect><path d="M8 11V7a4 4 0 0 1 8 0v4"></path></svg>remoteworker.id/library</div><span class="ext on" title="Ecosphere Assistant"><dc-import name="PixelE" variant="{{four}}" size="{{s16}}" dot="{{one}}" dark="{{no}}" anim="{{busy}}" hint-size="16px,16px"></dc-import></span><span style="width:24px;height:24px;border-radius:50%;background:#17141d"></span></div>
+  <div class="body" style="{{bodyStyle}}">
+    <div class="page">
+      <div class="pg-h"><span class="pg-logo"></span><b style="font-size:15px">Remote Worker</b><span class="pg-n" style="width:60px"></span><span class="pg-n" style="width:50px"></span><span class="pg-n" style="width:70px"></span><span class="grow"></span><span class="pg-n" style="width:90px;height:28px;border-radius:8px"></span></div>
+      <div class="pg-b">
+        <div class="mono" style="font-size:12px;color:#8d8493">/library</div>
+        <h1 style="margin:4px 0 0;font-size:32px;letter-spacing:-.03em">Library</h1>
+        <p style="margin:4px 0 0;color:#665f6e">Ebook dan catatan kursus untuk member.</p>
+        <div class="pg-grid"><div class="pg-card"><div class="pg-img"></div><div class="pg-n" style="width:70%;height:11px;background:#d9d4de"></div><div class="pg-n" style="width:45%"></div><button type="button" class="pg-cta">Baca</button></div><div class="pg-card"><div class="pg-img"></div><div class="pg-n" style="width:70%;height:11px;background:#d9d4de"></div><div class="pg-n" style="width:45%"></div><button type="button" class="pg-cta">Baca</button></div><div class="pg-card"><div class="pg-img"></div><div class="pg-n" style="width:70%;height:11px;background:#d9d4de"></div><div class="pg-n" style="width:45%"></div><button type="button" class="pg-cta">Baca</button></div><div class="pg-card"><div class="pg-img"></div><div class="pg-n" style="width:70%;height:11px;background:#d9d4de"></div><div class="pg-n" style="width:45%"></div><button type="button" class="pg-cta">Baca</button></div><div class="pg-card"><div class="pg-img"></div><div class="pg-n" style="width:70%;height:11px;background:#d9d4de"></div><div class="pg-n" style="width:45%"></div><button type="button" class="pg-cta">Baca</button></div><div class="pg-card"><div class="pg-img"></div><div class="pg-n" style="width:70%;height:11px;background:#d9d4de"></div><div class="pg-n" style="width:45%"></div><button type="button" class="pg-cta">Baca</button></div></div>
+        <div style="margin-top:22px;max-width:620px"><b style="font-size:14px">Komentar</b><div style="margin-top:8px;height:40px;border:1px solid #e5e1e8;border-radius:8px"></div></div>
+      </div>
+    </div>
+    <aside class="panel" style="{{panelStyle}}" aria-label="Ecosphere Assistant">
+    <div class="ph">
+      <span style="display:grid;place-items:center;width:24px;height:24px"><dc-import name="PixelE" variant="{{four}}" size="{{s20}}" dot="{{one}}" dark="{{no}}" anim="{{busy}}" hint-size="20px,20px"></dc-import></span>
+      <button type="button" class="projbtn" aria-label="Ganti proyek">rwid-returns <span class="chip c-ok">deploy</span><svg aria-hidden="true" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path d="m6 9 6 6 6-6"></path></svg></button>
+      <span class="grow"></span>
+      <span class="mono" style="font-size:11.5px;color:{{statusInk}};white-space:nowrap">{{statusText}}</span>
+      <button type="button" class="av" onClick="{{toggleMenu}}" aria-label="Menu akun" aria-expanded="{{menu}}">EK</button>
+    </div><sc-if value="{{menu}}" hint-placeholder-val="{{false}}"><div class="menu" role="menu">
+      <div class="lbl" style="padding:8px 10px 6px">Posisi panel</div>
+      <div class="seg" style="margin:0 6px"><button type="button" aria-pressed="{{isRight}}" onClick="{{dockRight}}">Dock kanan</button><button type="button" aria-pressed="{{isLeft}}" onClick="{{dockLeft}}">Dock kiri</button></div>
+      <div style="padding:6px 10px 8px;font-size:11.5px;color:#8d8493;line-height:1.4">Chrome menyimpan sisi panel di Settings → Appearance → Side panel position; tombol ini membukanya.</div>
+      <div style="height:1px;background:#ece8ef;margin:2px 0"></div>
+      <button type="button" class="mi" role="menuitem">Buka /project ↗</button>
+      <button type="button" class="mi" role="menuitem"><span>Folder</span><span class="mono grow" style="text-align:right;font-size:11px;color:#8d8493">~/estates/remoteworker</span></button>
+      <button type="button" class="mi" role="menuitem"><span>Model</span><span class="mono grow" style="text-align:right;font-size:11px;color:#8d8493">opencode · default</span></button>
+      <button type="button" class="mi" role="menuitem">Tema: terang</button>
+      <button type="button" class="mi" role="menuitem" style="color:#b42318">Keluar</button>
+    </div></sc-if>
+    <div class="ctx">sesi <b>#42</b> · mulai 09:01 · <b>{{sessDur}}</b> · {{msCount}} hasil · {{fileCount}} file</div>
+    <div class="scroll" style="gap:0">
+      <sc-for list="{{milestones}}" as="ms" hint-placeholder-count="3">
+        <div style="display:grid;grid-template-columns:22px minmax(0,1fr);gap:10px">
+          <div style="display:flex;flex-direction:column;align-items:center"><span style="width:12px;height:12px;margin-top:14px;border-radius:50%;background:#198653;box-shadow:0 0 0 3px #e0f2e8"></span><span style="flex:1;width:2px;background:#ded9e1"></span></div>
+          <button type="button" onClick="{{ms.toggle}}" class="card" style="margin:6px 0;padding:10px 12px;text-align:left;font:inherit;color:inherit;cursor:pointer;display:flex;flex-direction:column;gap:3px">
+            <span class="mono" style="font-size:11px;color:#8d8493">{{ms.at}} · {{ms.dur}} · {{ms.files}}</span>
+            <b style="font-size:13.5px">{{ms.outcome}}</b>
+            <span style="font-size:12.5px;color:#665f6e">“{{ms.prompt}}”</span>
+            <sc-if value="{{ms.open}}" hint-placeholder-val="{{false}}"><span class="mono" style="margin-top:4px;font-size:11.5px;color:#3a3440;white-space:pre-line">{{ms.detail}}</span></sc-if>
+          </button>
+        </div>
+      </sc-for>
+      <sc-if value="{{hasCurrent}}" hint-placeholder-val="{{false}}">
+        <div style="display:grid;grid-template-columns:22px minmax(0,1fr);gap:10px">
+          <div style="display:flex;flex-direction:column;align-items:center;padding-top:10px"><dc-import name="PixelE" variant="{{four}}" size="{{s20}}" dot="{{one}}" dark="{{no}}" anim="{{busy}}" hint-size="20px,20px"></dc-import><span style="flex:1;width:2px;background:#ded9e1"></span></div>
+          <div style="display:flex;flex-direction:column;gap:8px;margin:6px 0"><sc-for list="{{items}}" as="m" hint-placeholder-count="4">
+        <sc-if value="{{m.isUser}}" hint-placeholder-val="{{false}}"><div class="mu">{{m.text}}<sc-if value="{{m.hasChips}}" hint-placeholder-val="{{false}}"><div class="chips"><sc-for list="{{m.chips}}" as="c" hint-placeholder-count="2"><span>{{c}}</span></sc-for></div></sc-if></div></sc-if>
+        <sc-if value="{{m.isText}}" hint-placeholder-val="{{true}}"><div class="mt">{{m.text}}</div></sc-if>
+        <sc-if value="{{m.isStep}}" hint-placeholder-val="{{false}}"><div class="st"><span style="color:#198653">✓</span><span class="t">{{m.tool}}</span><span class="a">{{m.arg}}</span><span class="m">{{m.meta}}</span></div></sc-if>
+        <sc-if value="{{m.isDiff}}" hint-placeholder-val="{{false}}"><div class="df"><div class="dh"><span style="flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">{{m.file}}</span><span style="color:#198653">{{m.plus}}</span><span style="color:#b42318">{{m.minus}}</span></div><div class="pre"><sc-for list="{{m.lines}}" as="l" hint-placeholder-count="3"><div class="{{l.cls}}">{{l.t}}</div></sc-for></div></div></sc-if>
+        <sc-if value="{{m.isPerm}}" hint-placeholder-val="{{false}}"><div class="pm"><div style="display:flex;gap:8px;align-items:center"><span class="chip c-w">izin</span><b style="font-size:13px">Jalankan <code>{{m.cmd}}</code>?</b></div><span style="font-size:12.5px;color:#6e3b05">{{m.why}}</span><sc-if value="{{m.pending}}" hint-placeholder-val="{{true}}"><div class="crow"><button type="button" class="btn" onClick="{{m.allow}}">Izinkan sekali</button><button type="button" class="btn g" onClick="{{m.allowAll}}">Selalu untuk proyek ini</button><button type="button" class="btn g" onClick="{{m.deny}}">Tolak</button></div></sc-if><sc-if value="{{m.answered}}" hint-placeholder-val="{{false}}"><span class="mono" style="font-size:11.5px;color:#8a4606">{{m.answerText}}</span></sc-if></div></sc-if>
+        <sc-if value="{{m.isDone}}" hint-placeholder-val="{{false}}"><div class="dn"><b style="font-size:14px;color:#14532d">✓ {{m.title}}</b><sc-for list="{{m.list}}" as="d" hint-placeholder-count="3"><span style="font-size:13px;color:#14532d">· {{d}}</span></sc-for><div class="crow" style="margin-top:4px"><button type="button" class="btn g" onClick="{{reloadTab}}">{{reloadLabel}}</button><sc-if value="{{m.isQa}}" hint-placeholder-val="{{false}}"><button type="button" class="btn" onClick="{{sendQa}}" disabled="{{qaSent}}">{{qaLabel}}</button></sc-if></div></div></sc-if>
+      </sc-for>
+      <sc-if value="{{busy}}" hint-placeholder-val="{{false}}"><div class="crow" style="font:500 12px 'DM Mono',monospace;color:#5b3fd6"><dc-import name="PixelE" variant="{{four}}" size="{{s16}}" dot="{{one}}" dark="{{no}}" anim="{{yes}}" hint-size="16px,16px"></dc-import>{{busyText}}</div></sc-if></div>
+        </div>
+      </sc-if>
+      <div style="display:grid;grid-template-columns:22px minmax(0,1fr);gap:10px">
+        <div style="display:flex;justify-content:center"><span style="width:12px;height:12px;margin-top:14px;border-radius:50%;border:2px dashed #bdb3c3"></span></div>
+        <sc-if value="{{noSummary}}" hint-placeholder-val="{{true}}"><div style="margin:6px 0"><button type="button" class="btn g" onClick="{{openSum}}" disabled="{{busy}}">Ringkas sesi untuk /project</button></div></sc-if>
+        <sc-if value="{{sumOpen}}" hint-placeholder-val="{{false}}">
+          <div class="card" style="margin:6px 0;padding:12px;display:flex;flex-direction:column;gap:8px;border-color:#5b3fd6">
+            <span class="lbl">Ringkasan eksekutif · draf agen</span>
+            <input value="{{headline}}" onInput="{{onHeadline}}" aria-label="Judul ringkasan" style="height:36px;padding:0 10px;border:1px solid #ded9e1;border-radius:8px;font:700 14px Manrope,sans-serif">
+            <sc-for list="{{results}}" as="r" hint-placeholder-count="3"><label style="display:flex;gap:8px;align-items:flex-start;font-size:13px"><input type="checkbox" checked="{{r.on}}" onChange="{{r.toggle}}" style="margin-top:3px"><span><b>{{r.t}}</b> — {{r.d}}</span></label></sc-for>
+            <div class="crow"><span class="cc on">cobaremoteworker.id ↗</span><span class="cc on">sesi-42.pdf</span><span class="cc">{{fileCount}} file teknis</span></div>
+            <span style="font-size:12px;color:#8d8493">Tampil sebagai banner di Ringkasan /project untuk semua anggota proyek.</span>
+            <div class="crow"><button type="button" class="btn br" onClick="{{sendSum}}">Kirim ke /project</button><button type="button" class="btn g" onClick="{{closeSum}}">Nanti</button></div>
+          </div>
+        </sc-if>
+        <sc-if value="{{sumSent}}" hint-placeholder-val="{{false}}"><div class="dn" style="margin:6px 0"><b style="font-size:13.5px;color:#14532d">✓ Terkirim · banner /project diperbarui</b><span class="mono" style="font-size:11.5px;color:#14532d">eco pm report · sesi #42 · {{resultsOn}} hasil</span></div></sc-if>
+      </div>
+    </div>
+    <div class="comp">
+      <div class="cchips"><sc-for list="{{ctxChips}}" as="c" hint-placeholder-count="4"><button type="button" class="{{c.cls}}" onClick="{{c.toggle}}" aria-pressed="{{c.on}}">{{c.label}}</button></sc-for></div>
+      <textarea class="ta" placeholder="Minta agen… (/ perintah, @ file)" value="{{draft}}" onInput="{{onDraft}}" onKeyDown="{{onKey}}" aria-label="Pesan untuk agen"></textarea>
+      <div class="crow"><span class="mono" style="font-size:11.5px;color:#8d8493">opencode · build</span><span class="grow"></span><sc-if value="{{busy}}" hint-placeholder-val="{{false}}"><button type="button" class="btn g" onClick="{{stop}}">Stop</button></sc-if><button type="button" class="btn br" onClick="{{send}}">Kirim ↵</button></div>
+    </div>
+  </aside>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview": {"width": 1440, "height": 900}}'>
+class Component extends DCLogic {
+
+  constructor(props) {
+    super(props);
+    this.nid = 1;
+    this.state = Object.assign({ side: 'right', menu: false, items: this.seed().map(x => Object.assign({ id: this.nid++ }, x)), q: [], busy: false, wait: null, draft: '', chips: { page: true, shot: false, el: false, con: false }, reloaded: false, qaSent: false, qaStarted: false, allowAll: false }, this.extraState());
+  }
+  componentDidMount() { this.iv = setInterval(() => this.tick(), 700); }
+  componentWillUnmount() { clearInterval(this.iv); }
+  extraState() { return {}; }
+  seed() { return []; }
+  onItem() {}
+  tick() {
+    const s = this.state;
+    if (this.extraTick) this.extraTick();
+    if (s.wait) return;
+    if (!s.q.length) { if (s.busy) this.setState({ busy: false }); return; }
+    const n = Object.assign({ id: this.nid++ }, s.q[0]);
+    const rest = s.q.slice(1);
+    if (n.kind === 'perm' && s.allowAll) {
+      this.setState({ items: s.items.concat([Object.assign({}, n, { answered: 'auto' })]), q: rest });
+      return;
+    }
+    if (n.kind === 'perm') { this.setState({ items: s.items.concat([n]), q: rest, wait: n.id }); return; }
+    this.setState({ items: s.items.concat([n]), q: rest, busy: rest.length > 0 });
+    this.onItem(n);
+  }
+  run(list) { this.setState({ q: this.state.q.concat(list), busy: true, reloaded: false }); }
+  answer(id, a) {
+    const s = this.state;
+    const items = s.items.map(it => it.id === id ? Object.assign({}, it, { answered: a }) : it);
+    if (a === 'deny') {
+      this.setState({ items: items.concat([{ id: this.nid++, kind: 'text', text: 'Oke, tidak saya jalankan. Uji ulang manual: eco up dev, lalu buka /library.' }]), q: [], wait: null, busy: false });
+    } else this.setState({ items, wait: null, busy: true, allowAll: a === 'all' ? true : s.allowAll });
+  }
+  qaScript() {
+    return [
+      { kind: 'user', text: 'Kerjakan QA #152: /library masih terbuka & komentar lolos tag script.', chips: ['qa #152', 'library.png', 'remoteworker.id/library'] },
+      { kind: 'text', text: 'Saya ambil laporannya, baca screenshot, lalu reproduksi di estate lokal.' },
+      { kind: 'step', tool: 'pickup', arg: 'qa #152 · tunggu 06:12', meta: 'eco pm' },
+      { kind: 'step', tool: 'read', arg: 'screenshot 1/1 · /library', meta: '' },
+      { kind: 'step', tool: 'repro', arg: 'GET /library → 200 (harusnya 404)', meta: ':20032' },
+      { kind: 'diff', file: 'rwid-os/src/routes.rs', plus: 0, minus: 2, lines: [[' ', '.route("/apps", apps)'], ['-', '.route("/library", library)'], ['-', '.route("/library/:id", book)'], [' ', '.route("/campus", campus)']] },
+      { kind: 'diff', file: 'comments/src/render.rs', plus: 2, minus: 1, lines: [['-', 'html.push_str(&c.body);'], ['+', 'html.push_str(&escape_html(&c.body));'], ['+', 'csp.script_src("self");']] },
+      { kind: 'step', tool: 'test', arg: '12/12 payload ditolak', meta: 'cargo test' },
+      { kind: 'perm', cmd: 'eco up dev', why: 'Restart estate lokal supaya bisa diuji ulang di tab ini.' },
+      { kind: 'step', tool: 'run', arg: 'eco up dev · 6/6 online', meta: '00:41' },
+      { kind: 'step', tool: 'verify', arg: 'GET /library → 404 ✓', meta: ':20032' },
+      { kind: 'done', title: 'QA #152 siap diverifikasi', list: ['/library sekarang 404', 'komentar di-escape + CSP', '12/12 payload ditolak'], qa: true }
+    ];
+  }
+  genericScript(text, chips) {
+    return [
+      { kind: 'user', text, chips },
+      { kind: 'text', text: 'Oke. Saya lihat halaman yang terbuka dan kode yang terkait dulu.' },
+      { kind: 'step', tool: 'read', arg: 'tab aktif · remoteworker.id/library', meta: '' },
+      { kind: 'step', tool: 'grep', arg: '"Library" → web/src/pages/library.tsx', meta: '3 hit' },
+      { kind: 'diff', file: 'web/src/pages/library.tsx', plus: 3, minus: 1, lines: [['-', '<p>Ebook dan catatan kursus.</p>'], ['+', '<p>Ebook dan catatan kursus untuk member.</p>'], ['+', '<SortMenu by={sort} />'], ['+', '<Grid items={books} />']] },
+      { kind: 'step', tool: 'build', arg: 'hot reload · :20032', meta: '1.2s' },
+      { kind: 'done', title: 'Perubahan siap di estate lokal', list: ['1 file diubah', 'build ok'], qa: false }
+    ];
+  }
+  chipLabels() { return { page: 'halaman', shot: 'screenshot', el: 'elemen', con: 'console · 2 error' }; }
+  baseVals() {
+    const s = this.state;
+    const L = this.chipLabels();
+    const items = s.items.map(it => ({
+      isUser: it.kind === 'user', isText: it.kind === 'text', isStep: it.kind === 'step', isDiff: it.kind === 'diff', isPerm: it.kind === 'perm', isDone: it.kind === 'done',
+      text: it.text || '', chips: it.chips || [], hasChips: !!(it.chips && it.chips.length),
+      tool: it.tool || '', arg: it.arg || '', meta: it.meta || '',
+      file: it.file || '', plus: '+' + (it.plus || 0), minus: '−' + (it.minus || 0),
+      lines: (it.lines || []).map(([k, t]) => ({ t: (k === ' ' ? '  ' : k + ' ') + t, cls: k === '+' ? 'dl-add' : (k === '-' ? 'dl-del' : 'dl-ctx') })),
+      cmd: it.cmd || '', why: it.why || '', pending: it.kind === 'perm' && !it.answered, answered: !!it.answered,
+      answerText: it.answered === 'deny' ? '✕ ditolak' : (it.answered === 'all' ? '✓ diizinkan · selalu untuk proyek ini' : (it.answered === 'auto' ? '✓ diizinkan otomatis' : '✓ diizinkan sekali')),
+      allow: () => this.answer(it.id, 'allow'), allowAll: () => this.answer(it.id, 'all'), deny: () => this.answer(it.id, 'deny'),
+      title: it.title || '', list: it.list || [], isQa: !!it.qa
+    }));
+    const steps = s.items.filter(i => i.kind === 'step' || i.kind === 'diff').length;
+    const send = () => {
+      const t = (s.draft || '').trim();
+      if (!t || s.busy) return;
+      const chips = Object.keys(s.chips).filter(k => s.chips[k]).map(k => L[k]);
+      this.setState({ draft: '' });
+      this.run(this.genericScript(t, chips));
+    };
+    return {
+      four: 4, one: 1, yes: true, no: false, s16: 16, s20: 20, s28: 28, s40: 40, s64: 64,
+      busy: s.busy || !!s.wait, items,
+      busyText: s.wait ? 'menunggu izinmu…' : 'agen bekerja · ' + steps + ' langkah',
+      statusText: s.wait ? 'perlu izin' : (s.busy ? 'bekerja' : 'siap'),
+      statusInk: s.wait ? '#b45d09' : (s.busy ? '#198653' : '#8d8493'),
+      menu: s.menu, toggleMenu: () => this.setState({ menu: !s.menu }),
+      isRight: s.side === 'right', isLeft: s.side === 'left',
+      dockRight: () => this.setState({ side: 'right', menu: false }), dockLeft: () => this.setState({ side: 'left', menu: false }),
+      bodyStyle: 'flex-direction: ' + (s.side === 'right' ? 'row' : 'row-reverse') + ';',
+      panelStyle: s.side === 'right' ? 'border-left: 1px solid #ded9e1;' : 'border-right: 1px solid #ded9e1;',
+      draft: s.draft, onDraft: e => this.setState({ draft: e.target.value }),
+      onKey: e => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); send(); } },
+      send, stop: () => this.setState({ q: [], wait: null, busy: false, items: s.items.concat([{ id: this.nid++, kind: 'text', text: '⏹ Dihentikan. Perubahan yang sudah dibuat tetap ada.' }]) }),
+      ctxChips: Object.keys(L).map(k => ({ label: (s.chips[k] ? '✓ ' : '+ ') + L[k], on: !!s.chips[k], cls: 'cc' + (s.chips[k] ? ' on' : ''), toggle: () => this.setState({ chips: Object.assign({}, s.chips, { [k]: !s.chips[k] }) }) })),
+      reloadTab: () => this.setState({ reloaded: true }), reloadLabel: s.reloaded ? '✓ tab dimuat ulang' : 'Reload tab',
+      sendQa: () => this.setState({ qaSent: true }), qaSent: s.qaSent, qaLabel: s.qaSent ? '✓ terkirim ke pelapor' : 'Kirim ke QA #152 →',
+      startQa: () => { if (s.busy || s.qaStarted) return; this.setState({ qaStarted: true }); this.run(this.qaScript()); },
+      qaWaiting: !s.qaStarted
+    };
+  }
+
+  extraState() { return { ms: [
+      { at: '09:04', dur: '22m', files: '4 file', outcome: 'Dompet Ekoin muncul di dock', prompt: 'Tambahkan app Dompet Ekoin ke dock OS', detail: 'edit  os/dock.rs, apps/ekoin/*\ntest  saldo & riwayat 8/8\nrun   eco up dev ✓', open: false },
+      { at: '09:31', dur: '18m', files: '3 file', outcome: 'Analytics per aplikasi', prompt: 'Catat pemakaian tiap app di OS RWID', detail: 'edit  analytics/events.rs, os/launch.rs\ntest  6/6', open: false },
+      { at: '09:52', dur: '11m', files: '2 file', outcome: 'Ecobook Mastering Python dijual 50 ekoin', prompt: 'Jadikan ecobook Python produk berbayar pertama', detail: 'edit  market/catalog.yml, ecobook/price.rs\ntest  checkout ekoin ✓', open: false }
+    ], sum: 0, headline: '3 fitur baru siap dicoba di OS remoteworker.id', res: [true, true, true, true], startT: 0, tt: 0 }; }
+  seed() { return []; }
+  extraTick() { this.setState({ tt: this.state.tt + 1 }); }
+  onItem(n) {
+    if (n.kind !== 'done') return;
+    const s = this.state;
+    const prompt = (s.items.find(i => i.kind === 'user') || {}).text || '';
+    const files = s.items.filter(i => i.kind === 'diff').length;
+    setTimeout(() => this.setState({ ms: this.state.ms.concat([{ at: '10:' + String(14 + this.state.ms.length).padStart(2, '0'), dur: '3m', files: files + ' file', outcome: n.title, prompt, detail: s.items.filter(i => i.kind === 'step' || i.kind === 'diff').map(i => i.kind === 'diff' ? 'edit  ' + i.file : (i.tool + '  ' + i.arg)).join('\n'), open: false }]), items: [], res: this.state.res.concat([true]) }), 1400);
+  }
+  renderVals() {
+    const s = this.state, b = this.baseVals();
+    const allRes = s.ms.map(m => ({ t: m.outcome, d: m.prompt }));
+    const fileCount = s.ms.reduce((a, m) => a + parseInt(m.files, 10), 0);
+    const mins = 72 + Math.floor(s.tt / 6);
+    return Object.assign(b, {
+      milestones: s.ms.map((m, i) => Object.assign({}, m, { toggle: () => this.setState({ ms: s.ms.map((x, j) => j === i ? Object.assign({}, x, { open: !x.open }) : x) }) })),
+      hasCurrent: s.items.length > 0,
+      sessDur: Math.floor(mins / 60) + 'j ' + (mins % 60) + 'm', msCount: s.ms.length, fileCount,
+      noSummary: s.sum === 0, sumOpen: s.sum === 1, sumSent: s.sum === 2,
+      openSum: () => this.setState({ sum: 1 }), closeSum: () => this.setState({ sum: 0 }), sendSum: () => this.setState({ sum: 2 }),
+      headline: s.headline, onHeadline: e => this.setState({ headline: e.target.value }),
+      results: allRes.map((r, i) => Object.assign(r, { on: s.res[i] !== false, toggle: () => this.setState({ res: s.res.map((v, j) => j === i ? !v : v) }) })),
+      resultsOn: allRes.filter((r, i) => s.res[i] !== false).length
+    });
+  }
+
+}
+</script>
+</body>
+</html>
