@@ -194,6 +194,7 @@ function paintBar() {
     b,
     h("button", { class: "sesbtn", "data-act": "sessions", "aria-haspopup": "dialog", "aria-expanded": String(A.mode === "sessions"), title: t("ses.open", "Sessions"), onclick: () => (A.mode === "sessions" ? closeSessions() : openSessions()) }, h("span", { class: "t", "data-session-title": "", text: A.meta ? sessionTitle(A.meta) : t("ses.new", "New session") }), h("span", { text: "▾" })),
     n > 0 && h("span", { class: "cc" + (big ? " on" : ""), "data-ctx": "", title: t("ses.ctx", "Size of the conversation sent to the model. A smaller context costs fewer tokens: /compact summarizes it."), text: `ctx ${fmtTokens(n)}` }),
+    A.meta && A.meta.share && A.meta.share.url && h("span", { class: "cc on", "data-shared": "", title: t("ses.sharedT", "Shared: anyone with this link can read the session"), text: t("ses.shared", "shared") }),
     big && h("button", { class: "btn g sm", "data-act": "compact", onclick: () => runBuiltin("compact"), text: t("ses.compact", "Compact") }),
     h("span", { class: "grow" }),
     h("button", { class: "btn g sm", "data-act": "new-session", onclick: newSession, text: "+ " + t("ses.newShort", "New") }),
@@ -217,6 +218,7 @@ function paintStream() {
   }
   if (tl) {
     for (const it of tl.items()) kids.push(renderItem(it));
+    kids.push(shareCard());
     if (A.toast) kids.push(h("div", { class: "pm", style: { background: "var(--ok-wash)", borderColor: "var(--ok-line)" } }, A.toast));
     if (!tl.busy && tl.finished > 0 && tl.stepCount + tl.items().length > 0 && !tl.error && !tl.stopped) kids.push(doneCard());
     if (tl.error) kids.push(h("div", { class: "err", "data-err": "run" }, tl.error));
@@ -512,6 +514,7 @@ async function ensureSession() {
 
 /// A blank start: nothing is created on the server until the first message (no empty sessions pile up).
 export async function newSession() {
+  A.confirmShare = false;
   A.sessionId = "";
   A.tl = null;
   A.meta = null;
@@ -548,6 +551,7 @@ async function switchTo(id) {
   }
   A.tl = tl;
   A.sessionId = id;
+  A.confirmShare = false;
   A.meta = null;
   A.qa = null;
   A.mode = "chat";
@@ -618,6 +622,8 @@ const BUILTIN = [
   { name: "redo", alias: [], hint: "Restore what /undo reverted" },
   { name: "rename", alias: [], hint: "Rename this session: /rename <title>" },
   { name: "fork", alias: [], hint: "Continue in a copy of this session" },
+  { name: "share", alias: [], hint: "Publish this session at a public link" },
+  { name: "unshare", alias: [], hint: "Remove the public link" },
 ];
 const builtinFor = (n) => BUILTIN.find((b) => b.name === n || b.alias.includes(n));
 
@@ -625,6 +631,33 @@ function flash(msg) {
   A.toast = msg;
   bump();
   setTimeout(() => ((A.toast = ""), paintStream()), 4000);
+}
+
+async function doShare() {
+  A.confirmShare = false;
+  try {
+    setMeta(await S.oc.share(A.sessionId));
+  } catch (e) {
+    flash(e.message);
+  }
+  bump();
+}
+
+const safeUrl = (u) => {
+  try {
+    return /^https?:$/.test(new URL(u).protocol) ? u : "";
+  } catch {
+    return "";
+  }
+};
+
+function shareCard() {
+  const url = A.meta && A.meta.share && safeUrl(A.meta.share.url);
+  if (url)
+    return h("div", { class: "pm", "data-card": "shared" }, h("b", { text: t("ses.sharedT", "Shared: anyone with this link can read the session") }), h("div", { class: "mono", style: { fontSize: "11.5px", wordBreak: "break-all" } }, h("a", { href: url, target: "_blank", rel: "noopener noreferrer", text: url })), h("div", { class: "crow" }, h("button", { class: "btn g sm", "data-act": "share-copy", onclick: () => navigator.clipboard.writeText(url).catch(() => {}), text: t("ses.copy", "Copy link") }), h("button", { class: "btn g sm", "data-act": "unshare", onclick: () => runBuiltin("unshare"), text: t("ses.unshare", "Remove link") })));
+  if (A.confirmShare)
+    return h("div", { class: "pm", "data-card": "share-confirm" }, h("b", { text: t("ses.shareQ", "Publish this session?") }), h("div", { text: t("ses.shareWarn", "The whole conversation, including code and file contents it shows, goes to OpenCode's sharing service at a public link. Anyone with the link can read it. You can remove the link later with /unshare.") }), h("div", { class: "crow" }, h("button", { class: "btn br sm", "data-act": "share-yes", onclick: doShare, text: t("ses.shareYes", "Publish link") }), h("button", { class: "btn g sm", "data-act": "share-no", onclick: () => ((A.confirmShare = false), bump()), text: t("ses.shareNo", "Cancel") })));
+  return null;
 }
 
 async function configModel(oc) {
@@ -670,6 +703,13 @@ export async function runBuiltin(name, arg = "") {
         if (!arg.trim()) return flash(t("ses.renameUsage", "Usage: /rename <new title>"));
         setMeta(await oc.rename(A.sessionId, arg.trim()));
         return;
+      case "share":
+        if (A.meta && A.meta.share && A.meta.share.url) return flash(t("ses.already", "Already shared. /unshare removes the link."));
+        A.confirmShare = true;
+        return bump();
+      case "unshare":
+        setMeta(await oc.unshare(A.sessionId).then(() => oc.session(A.sessionId)));
+        return flash(t("ses.unshared", "Public link removed."));
       case "fork":
         return await switchTo((await oc.fork(A.sessionId)).id);
     }

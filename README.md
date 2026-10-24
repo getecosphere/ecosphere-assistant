@@ -8,7 +8,7 @@ Chrome side panel: your **/project dashboard** next to the page you are on, plus
   message), the title button lists, searches, switches, renames, forks and deletes sessions of this project, a `ctx 52k` chip shows
   what the model re-reads each turn (with a Compact button past 100k). Slash commands run in the panel: `/new` `/clear`,
   `/sessions` `/resume`, `/compact` `/summarize`, `/undo` `/redo`, `/rename <title>`, `/fork`; the project's own OpenCode
-  commands (`/init`, `/review`, …) are listed too. `/share` is left out on purpose (it publishes the session). **Page-aware**: the context card (tab URL → likely source file), the **element picker**
+  commands (`/init`, `/review`, …) are listed too. `/share` asks first (it publishes the whole session at a public link), shows the link with Copy / Remove, and `/unshare` removes it. **Page-aware**: the context card (tab URL → likely source file), the **element picker**
   (⌘⇧E / Ctrl⇧E, Esc cancels), console errors, reload-after-change.
 - **QA** — this project's QA requests, capture the tab into one, **Work on it** (`eco pm qa take` → agent session → steps mirrored to
   /project → **Send to QA**). **Project** — hosting card, deploy of the local build (gated by plan). **Summarize session** → `eco pm report`.

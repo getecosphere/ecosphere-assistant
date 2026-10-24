@@ -47,6 +47,12 @@ export class OpenCode {
   compact(id, providerID, modelID) {
     return this.call("POST", `/session/${id}/summarize`, { providerID, modelID });
   }
+  share(id) {
+    return this.call("POST", `/session/${id}/share`, {});
+  }
+  unshare(id) {
+    return this.call("DELETE", `/session/${id}/share`);
+  }
   revert(id, messageID) {
     return this.call("POST", `/session/${id}/revert`, { messageID });
   }

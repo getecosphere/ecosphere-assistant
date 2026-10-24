@@ -74,7 +74,7 @@ test("slash commands: /new, /sessions, /rename, /undo, /redo, /compact, popover 
   const ta = panel.locator("textarea");
   await ta.fill("/");
   const pop = panel.locator('[data-pop="cmd"]');
-  for (const c of ["/new", "/sessions", "/compact", "/undo", "/redo", "/rename", "/fork", "/init"]) await expect(pop).toContainText(c);
+  for (const c of ["/share", "/new", "/sessions", "/compact", "/undo", "/redo", "/rename", "/fork", "/init"]) await expect(pop).toContainText(c);
   await ta.fill("");
 
   await ask(panel, "Why is the library grid heavy on mobile?");
@@ -108,4 +108,25 @@ test("the session is remembered per project across a panel reload", async ({ app
   await app.panel.reload();
   await expect(app.panel.locator('[data-kind="user"]')).toContainText("remember me");
   await expect(app.panel.locator("[data-session-title]")).toContainText("remember me");
+});
+
+test("/share asks first, then shows the link; /unshare removes it", async ({ app, env }) => {
+  await intoApp(app, env);
+  const { panel } = app;
+  await ask(panel, "share me");
+  await done(panel, 1);
+  await ask(panel, "/share");
+  await expect(panel.locator('[data-card="share-confirm"]')).toContainText("Anyone with the link can read it");
+  expect(env.ocReqs().some((r) => r.path.endsWith("/share"))).toBe(false);
+  await panel.locator('[data-act="share-no"]').click();
+  await expect(panel.locator('[data-card="share-confirm"]')).toHaveCount(0);
+  expect(env.ocReqs().some((r) => r.path.endsWith("/share"))).toBe(false);
+
+  await ask(panel, "/share");
+  await panel.locator('[data-act="share-yes"]').click();
+  await expect(panel.locator('[data-card="shared"] a')).toHaveAttribute("href", /^https:\/\/share\.example\/s\/ses_/);
+  await expect(panel.locator("[data-shared]")).toBeVisible();
+  await panel.locator('[data-act="unshare"]').click();
+  await expect(panel.locator('[data-card="shared"]')).toHaveCount(0);
+  await expect(panel.locator("[data-shared]")).toHaveCount(0);
 });
