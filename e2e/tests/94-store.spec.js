@@ -22,6 +22,8 @@ async function compose(ctx, name, headline, sub, pageShot, panelShot) {
   await p.close();
 }
 
+// Opt-in (STORE=1): a normal run must not rewrite the committed screenshots.
+test.skip(!process.env.STORE, "set STORE=1 to regenerate the store screenshots");
 test("store screenshots", async ({ app, env, ctx }) => {
   env.approve();
   env.setState((s) => {

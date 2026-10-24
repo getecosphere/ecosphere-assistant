@@ -50,6 +50,7 @@ cd e2e && npm install && npx playwright install chromium
 npx playwright test                  # loads the unpacked extension; FAKE eco + FAKE opencode, never a real account
 node --test ../native/test ../js/test # helper (allowlist, Linux/macOS installer) and the event reducer
 node make-icons.mjs                  # regenerate the LED icons
+STORE=1 npx playwright test tests/94-store.spec.js   # regenerate the store screenshots (opt-in)
 ```
 
 ## Release
