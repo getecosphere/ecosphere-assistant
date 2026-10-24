@@ -31,7 +31,8 @@ test("not signed in → Google device login shows the link and finishes when the
   const { panel } = app;
   await expect(panel.locator('[data-act="use-cli"]')).toHaveCount(0);
   await panel.locator('[data-act="google"]').click();
-  await expect(panel.locator(`a[href="http://127.0.0.1:1/device/abc123"]`)).toBeVisible();
+  await expect(panel.locator(`a[href="http://127.0.0.1:1/device/abc123"]`)).toHaveText("Open the sign-in page");
+  await expect(panel.locator('[data-step="login"]')).not.toContainText("127.0.0.1");
   fs.writeFileSync(env.statePath + ".login", "1");
   await expect(step(panel, "login")).toHaveClass(/done/);
   expect(env.ecoCalls().some((c) => c.args[0] === "login")).toBe(true);

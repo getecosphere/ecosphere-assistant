@@ -84,7 +84,7 @@ function login() {
     { class: "body" },
     signed && h("button", { class: "btn", "data-act": "use-cli", onclick: () => (setPref("account", S.who.email), notify()), text: t("ob.useCli", "Use the eco account on this machine · {email}", { email: S.who.email }) }),
     h("button", { class: signed ? "btn g" : "btn", "data-act": "google", disabled: ui.loginBusy, onclick: googleLogin, text: ui.loginBusy ? t("ob.waiting", "Waiting for you in the browser…") : t("ob.google", "Sign in with Google") }),
-    ui.loginUrl && h("p", { class: "subtle mono", style: { fontSize: "11.5px" } }, t("ob.loginUrl", "If no tab opened, open this link:"), " ", h("a", { href: ui.loginUrl, target: "_blank", rel: "noopener", text: ui.loginUrl })),
+    ui.loginUrl && /^https?:\/\//.test(ui.loginUrl) && h("p", { class: "subtle", style: { fontSize: "12.5px" } }, t("ob.loginUrl", "If no tab opened:"), " ", h("a", { href: ui.loginUrl, target: "_blank", rel: "noopener", "data-act": "open-login", text: t("ob.loginOpen", "Open the sign-in page") })),
     ui.login && h("div", { class: "err" }, ui.login),
   );
 }
