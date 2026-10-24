@@ -34,6 +34,9 @@ Permissions: `sidePanel nativeMessaging storage tabs activeTab scripting`; hosts
 `optional_host_permissions: <all_urls>` is asked at first use (per-site page access, and screenshots — `captureVisibleTab`
 needs `activeTab` or `<all_urls>`). No content script.
 
+**Workspace rules:** OpenCode only reads `AGENTS.md` up to the repo's git root, so the helper passes `AGENTS.md` files of parent
+folders (up to `$HOME`) as extra `instructions` — e.g. a workspace index above many estate repos still applies.
+
 ## Layout
 
 `manifest.json` · `background.js` · `sidepanel.html/css` · `js/` (app, bridge, oc, session, agent, page, qa, project, compose, onboarding, main) ·

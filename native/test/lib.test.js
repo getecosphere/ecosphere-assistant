@@ -137,3 +137,19 @@ test("scan finds estates a few levels deep and skips node_modules", () => {
   const found = lib.scanEstates([path.join(tmp, "code")]);
   assert.deepEqual(found, [estate]);
 });
+
+test("workspace rules: AGENTS.md of parent folders above the git root are handed to OpenCode", () => {
+  fs.writeFileSync(path.join(tmp, "AGENTS.md"), "# home rules\n");
+  const ws = path.join(tmp, "work");
+  const repo = path.join(ws, "estates", "shop");
+  fs.mkdirSync(path.join(repo, ".git"), { recursive: true });
+  fs.mkdirSync(path.join(repo, "frontend"), { recursive: true });
+  fs.writeFileSync(path.join(repo, "AGENTS.md"), "# repo rules (OpenCode finds this itself)\n");
+  fs.mkdirSync(path.join(ws, ".agents"));
+  fs.writeFileSync(path.join(ws, ".agents", "AGENTS.md"), "# workspace rules\n");
+  fs.symlinkSync(path.join(ws, ".agents", "AGENTS.md"), path.join(ws, "AGENTS.md"));
+  // from the repo root and from a subfolder: the repo's own file is excluded, parents are included outermost-first
+  for (const start of [repo, path.join(repo, "frontend")]) {
+    assert.deepEqual(lib.workspaceRules(start), [path.join(tmp, "AGENTS.md"), path.join(ws, "AGENTS.md")]);
+  }
+});

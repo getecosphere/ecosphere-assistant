@@ -112,3 +112,12 @@ for (const scheme of ["light", "dark"]) {
     expect(r.violations.map((v) => `${v.id}: ${v.nodes.map((n) => n.target).join(" ")}`)).toEqual([]);
   });
 }
+
+test("workspace rules above the project repo are listed in the menu (they are passed to OpenCode)", async ({ app, env }) => {
+  const fs2 = await import("node:fs");
+  fs2.writeFileSync(path.join(env.home, "AGENTS.md"), "# workspace rules\n");
+  await intoApp(app, env);
+  await app.panel.locator('[data-act="account-menu"]').click();
+  await expect(app.panel.locator('[data-act="rules"]')).toContainText("1 · ");
+  await expect(app.panel.locator('[data-act="rules"]')).toHaveAttribute("title", path.join(env.home, "AGENTS.md"));
+});

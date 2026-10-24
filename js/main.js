@@ -160,6 +160,7 @@ function accountMenu() {
     h("div", { class: "sep" }),
     item(`${t("menu.openProject", "Open /project")} ↗`, { attrs: { "data-act": "open-project" }, on: () => ((menu = null), chrome.tabs.create({ url: (S.pm && S.pm.dashboard) || "https://getecosphere.com/project" })) }),
     S.active && item(t("menu.folder", "Folder"), { attrs: { "data-act": "folder" }, on: () => navigator.clipboard.writeText(S.active.dir).catch(() => {}) }, shortPath(S.active.dir)),
+    S.active && S.active.rules && S.active.rules.length > 0 && item(t("menu.rules", "Workspace rules"), { attrs: { "data-act": "rules", title: S.active.rules.join("\n") }, on: () => navigator.clipboard.writeText(S.active.rules.join("\n")).catch(() => {}) }, `${S.active.rules.length} · ${shortPath(S.active.rules[S.active.rules.length - 1])}`),
     item(t("menu.model", "Model"), { on: () => {} }, "opencode · default"),
     item(`${t("menu.theme", "Theme")}: ${themeLabel}`, { attrs: { "data-act": "theme" }, on: () => (setPref("theme", { system: "light", light: "dark", dark: "system" }[theme]), applyTheme(), paintHeader()) }),
     item(t("menu.signout", "Sign out"), { danger: true, attrs: { "data-act": "signout" }, on: signOut }),

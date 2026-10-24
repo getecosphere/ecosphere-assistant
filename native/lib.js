@@ -149,6 +149,7 @@ function estateInfo(dir) {
     hosting: m.hostnames.length ? "deploy" : "serve",
     serve: m.serveSub,
     services: m.services,
+    rules: workspaceRules(dir),
     devPorts: devPorts(dir),
     lxs: m.lxs.map((x) => ({ ...x, signed: lock[x.name] === "verified" })),
   };
@@ -347,6 +348,34 @@ function freePort() {
   });
 }
 
+/// OpenCode reads AGENTS.md from the working folder up to the git root only. A workspace that keeps
+/// its rules in a parent folder (e.g. ~/ar-rahman/AGENTS.md above many estate repos) would never be
+/// read, so those parent files are handed to the server as extra `instructions` (up to $HOME).
+function workspaceRules(dir) {
+  const home = os.homedir();
+  let root = dir;
+  for (let d = dir; ; d = path.dirname(d)) {
+    if (fs.existsSync(path.join(d, ".git"))) {
+      root = d;
+      break;
+    }
+    if (path.dirname(d) === d) break;
+  }
+  const found = [];
+  const seen = new Set();
+  for (let d = path.dirname(root); d.startsWith(home) && found.length < 4; d = path.dirname(d)) {
+    const f = path.join(d, "AGENTS.md");
+    try {
+      const real = fs.realpathSync(f);
+      if (!seen.has(real)) found.unshift(f), seen.add(real);
+    } catch {
+      /* none here */
+    }
+    if (d === home) break;
+  }
+  return found;
+}
+
 const sh = (v) => `'${String(v).replace(/'/g, `'\\''`)}'`;
 
 /// On macOS the server must NOT be a child of Chrome: files a Chrome child creates get
@@ -358,12 +387,14 @@ async function spawnServer(bin, dir, port, password) {
   fs.mkdirSync(tmp, { recursive: true, mode: 0o700 });
   const logFile = path.join(HOME_DIR, "opencode-server.log");
   const env = await childEnv();
+  const rules = workspaceRules(dir);
+  const cfg = rules.length ? JSON.stringify({ instructions: rules }) : "";
   if (process.platform === "darwin") {
     const label = `com.ecosphere.assistant.opencode.${port}`;
     const script = path.join(HOME_DIR, `run-${port}.sh`);
     fs.writeFileSync(
       script,
-      `#!/bin/sh\ncd ${sh(dir)} || exit 1\nexport OPENCODE_SERVER_PASSWORD=${sh(password)} OPENCODE_SERVER_USERNAME=opencode TMPDIR=${sh(tmp)} PATH=${sh(env.PATH)} HOME=${sh(os.homedir())}\nexec ${sh(bin)} serve --hostname 127.0.0.1 --port ${port}\n`,
+      `#!/bin/sh\ncd ${sh(dir)} || exit 1\nexport OPENCODE_SERVER_PASSWORD=${sh(password)} OPENCODE_SERVER_USERNAME=opencode TMPDIR=${sh(tmp)} PATH=${sh(env.PATH)} HOME=${sh(os.homedir())}${cfg ? ` OPENCODE_CONFIG_CONTENT=${sh(cfg)}` : ""}\nexec ${sh(bin)} serve --hostname 127.0.0.1 --port ${port}\n`,
       { mode: 0o700 },
     );
     const r = await runCmd("launchctl", ["submit", "-l", label, "-o", logFile, "-e", logFile, "--", "/bin/sh", script]);
@@ -371,7 +402,7 @@ async function spawnServer(bin, dir, port, password) {
     return { pid: 0, label, script };
   }
   const log = fs.openSync(logFile, "a");
-  const child = spawn(bin, ["serve", "--hostname", "127.0.0.1", "--port", String(port)], { cwd: dir, env: { ...env, OPENCODE_SERVER_PASSWORD: password, OPENCODE_SERVER_USERNAME: "opencode", TMPDIR: tmp }, detached: true, stdio: ["ignore", log, log] });
+  const child = spawn(bin, ["serve", "--hostname", "127.0.0.1", "--port", String(port)], { cwd: dir, env: { ...env, OPENCODE_SERVER_PASSWORD: password, OPENCODE_SERVER_USERNAME: "opencode", TMPDIR: tmp, ...(cfg ? { OPENCODE_CONFIG_CONTENT: cfg } : {}) }, detached: true, stdio: ["ignore", log, log] });
   child.unref();
   return { pid: child.pid };
 }
@@ -740,4 +771,4 @@ async function handle(msg, emit) {
   }
 }
 
-module.exports = { handle, ACTIONS, parseManifest, estateInfo, scanEstates, resolveBin, text, integer, match, Reject, RE, HOME_DIR, VERSION, loadConfig, saveConfig };
+module.exports = { workspaceRules, handle, ACTIONS, parseManifest, estateInfo, scanEstates, resolveBin, text, integer, match, Reject, RE, HOME_DIR, VERSION, loadConfig, saveConfig };
