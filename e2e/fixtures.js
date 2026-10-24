@@ -108,9 +108,11 @@ export const test = base.extend({
         fn(s);
         fs.writeFileSync(statePath, JSON.stringify(s));
       },
-      approve() {
+      /// `{ask: true}` leaves the work folder unchosen, so the panel has to ask where the user works from.
+      approve({ ask = false } = {}) {
         const cfg = JSON.parse(fs.readFileSync(path.join(ah, "config.json"), "utf8"));
         cfg.estates = [estateDir];
+        if (!ask) cfg.workspaces = { [estateDir]: estateDir };
         fs.writeFileSync(path.join(ah, "config.json"), JSON.stringify(cfg));
       },
       ecoCalls: () => fs.readFileSync(ecoLog, "utf8").split("\n").filter(Boolean).map((l) => JSON.parse(l)),

@@ -138,6 +138,25 @@ function devPorts(dir) {
   return [...new Set(ports)];
 }
 
+/// Folders above an estate (below $HOME) where the user may start their agent from.
+function ancestorsOf(dir) {
+  const home = os.homedir();
+  const out = [];
+  for (let d = path.dirname(dir); d.startsWith(home + path.sep); d = path.dirname(d)) {
+    out.push({ dir: d, agents: fs.existsSync(path.join(d, "AGENTS.md")), git: fs.existsSync(path.join(d, ".git")) });
+  }
+  return out;
+}
+
+const isAbove = (a, b) => b === a || b.startsWith(a + path.sep);
+
+/// The folder OpenCode runs in for this estate: the one the user chose, else the estate itself.
+/// It is never guessed: the panel asks whenever there is a folder above to choose from.
+function workRoot(dir) {
+  const saved = (loadConfig().workspaces || {})[dir];
+  return saved && isAbove(saved, dir) && fs.existsSync(saved) ? saved : dir;
+}
+
 function estateInfo(dir) {
   const m = parseManifest(dir);
   if (!m) return null;
@@ -149,7 +168,9 @@ function estateInfo(dir) {
     hosting: m.hostnames.length ? "deploy" : "serve",
     serve: m.serveSub,
     services: m.services,
-    rules: workspaceRules(dir),
+    root: ((loadConfig().workspaces || {})[dir] && workRoot(dir)) || "",
+    ancestors: ancestorsOf(dir),
+    rules: rulesInEffect(workRoot(dir)),
     devPorts: devPorts(dir),
     lxs: m.lxs.map((x) => ({ ...x, signed: lock[x.name] === "verified" })),
   };
@@ -374,6 +395,17 @@ function workspaceRules(dir) {
     if (d === home) break;
   }
   return found;
+}
+
+/// Every AGENTS.md the agent will follow from this folder: its own and those up to the git root
+/// (OpenCode reads these itself) plus the parent-folder ones the helper passes as instructions.
+function rulesInEffect(dir) {
+  const own = [];
+  for (let d = dir; d.startsWith(os.homedir()); d = path.dirname(d)) {
+    if (fs.existsSync(path.join(d, "AGENTS.md"))) own.unshift(path.join(d, "AGENTS.md"));
+    if (fs.existsSync(path.join(d, ".git")) || path.dirname(d) === d) break;
+  }
+  return [...new Set([...workspaceRules(dir), ...own])];
 }
 
 const sh = (v) => `'${String(v).replace(/'/g, `'\\''`)}'`;
@@ -707,12 +739,28 @@ const ACTIONS = {
     return estateInfo(estateDir(a.dir));
   },
 
+  /// Choose the folder the agent works from (the workspace root). It has to be the estate itself or a
+  /// folder above it below $HOME; other approved estates under the same folder follow it.
+  async "workspace.set"(a) {
+    const dir = estateDir(a.dir);
+    if (!isAbs(a.root)) bad("root must be an absolute path");
+    const root = path.resolve(a.root);
+    if (!isAbove(root, dir) || (root !== dir && !root.startsWith(os.homedir() + path.sep)) || !fs.statSync(root, { throwIfNoEntry: false })?.isDirectory()) bad("the workspace folder must be this project or a folder above it (below your home folder)");
+    const prev = workRoot(dir);
+    const cfg = loadConfig();
+    cfg.workspaces = { ...(cfg.workspaces || {}), [dir]: root };
+    for (const e of cfg.estates || []) if (isAbove(root, e) && !cfg.workspaces[e]) cfg.workspaces[e] = root;
+    saveConfig(cfg);
+    if (prev !== root && !(cfg.estates || []).some((e) => workRoot(e) === prev)) await ocStop(prev);
+    return estateInfo(dir);
+  },
+
   async "oc.start"(a) {
-    return ocStart(estateDir(a.dir));
+    return ocStart(workRoot(estateDir(a.dir)));
   },
 
   async "oc.stop"(a) {
-    await ocStop(estateDir(a.dir));
+    await ocStop(workRoot(estateDir(a.dir)));
     return { ok: true };
   },
 

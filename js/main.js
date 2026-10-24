@@ -2,7 +2,7 @@ import { h, clear, svg, ICON, trapEscape } from "./dom.js";
 import { t, initLang } from "./i18n.js";
 import { led } from "./led.js";
 import { loadPrefs, pref, setPref, applyTheme } from "./prefs.js";
-import { S, subscribe, notify, call, refreshHelper, refreshWho, refreshEstates, refreshPm, refreshTab, selectProject, flags } from "./app.js";
+import { S, subscribe, notify, call, refreshHelper, refreshWho, refreshEstates, refreshPm, refreshTab, selectProject, flags, workDir } from "./app.js";
 import { needsOnboarding, mountOnboarding } from "./onboarding.js";
 import { mountAgent, agentState, onAgentStatus } from "./agent.js";
 import { mountQa, qaBadge, refresh as refreshQa } from "./qa.js";
@@ -159,6 +159,7 @@ function accountMenu() {
     h("div", { class: "note", text: t("menu.dockNote", "Chrome keeps the panel side in Settings → Appearance → Side panel position; these buttons open it.") }),
     h("div", { class: "sep" }),
     item(`${t("menu.openProject", "Open /project")} ↗`, { attrs: { "data-act": "open-project" }, on: () => ((menu = null), chrome.tabs.create({ url: (S.pm && S.pm.dashboard) || "https://getecosphere.com/project" })) }),
+    S.active && item(t("menu.root", "Work folder"), { attrs: { "data-act": "root", title: t("menu.root.t", "The folder OpenCode runs in: its sessions and AGENTS.md come from here") }, on: () => ((menu = null), (S.view = "agent"), (S.rootAsk = true), notify()) }, shortPath(workDir())),
     S.active && item(t("menu.folder", "Folder"), { attrs: { "data-act": "folder" }, on: () => navigator.clipboard.writeText(S.active.dir).catch(() => {}) }, shortPath(S.active.dir)),
     S.active && S.active.rules && S.active.rules.length > 0 && item(t("menu.rules", "Workspace rules"), { attrs: { "data-act": "rules", title: S.active.rules.join("\n") }, on: () => navigator.clipboard.writeText(S.active.rules.join("\n")).catch(() => {}) }, `${S.active.rules.length} · ${shortPath(S.active.rules[S.active.rules.length - 1])}`),
     item(t("menu.model", "Model"), { on: () => {} }, "opencode · default"),

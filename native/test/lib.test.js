@@ -153,3 +153,17 @@ test("workspace rules: AGENTS.md of parent folders above the git root are handed
     assert.deepEqual(lib.workspaceRules(start), [path.join(tmp, "AGENTS.md"), path.join(ws, "AGENTS.md")]);
   }
 });
+
+test("workspace.set: the work folder must be the project or a folder above it, below $HOME", async () => {
+  await call("estate.approve", { dir: estate });
+  const info = await call("estate.info", { dir: estate });
+  assert.equal(info.data.root, "");
+  assert.deepEqual(info.data.ancestors.map((a) => a.dir), [path.join(tmp, "code")]);
+  for (const bad of [tmp, "/", os.tmpdir(), path.join(estate, "web"), "relative/path"]) {
+    const r = await call("workspace.set", { dir: estate, root: bad });
+    assert.equal(r.ok, false, bad);
+  }
+  const ok = await call("workspace.set", { dir: estate, root: path.join(tmp, "code") });
+  assert.equal(ok.ok, true);
+  assert.equal(ok.data.root, path.join(tmp, "code"));
+});

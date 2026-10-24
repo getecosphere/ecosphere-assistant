@@ -2,7 +2,7 @@
 import { h, clear, svg, ICON } from "./dom.js";
 import { t } from "./i18n.js";
 import { led, setRunning } from "./led.js";
-import { S, call, notify, subscribe, ensureOpenCode, flags } from "./app.js";
+import { S, call, notify, subscribe, ensureOpenCode, flags, workDir, needsRoot, setRoot } from "./app.js";
 import { pref, setPref } from "./prefs.js";
 import { Timeline, toolArg } from "./session.js";
 import * as page from "./page.js";
@@ -122,7 +122,8 @@ async function guessFile(url) {
     const seg = new URL(url).pathname.split("/").filter(Boolean).pop() || "index";
     const res = await S.oc.findFiles(seg.replace(/[^\w-]/g, ""), 12);
     const files = (Array.isArray(res) ? res : []).filter((f) => !/\.(test|spec|md|json|lock)\b|node_modules|dist\//.test(f));
-    A.guess = files[0] || "";
+    const rel = S.active && S.active.dir.startsWith(workDir() + "/") ? S.active.dir.slice(workDir().length + 1) + "/" : "";
+    A.guess = files.find((f) => rel && f.startsWith(rel)) || files[0] || "";
   } catch {
     A.guess = "";
   }
@@ -173,7 +174,7 @@ function paintStrip() {
   if (!s) return;
   const busy = A.tl && A.tl.busy;
   const wait = A.tl && A.tl.waitingForPermission;
-  const dir = S.active ? shortDir(S.active.dir) : "";
+  const dir = S.active ? shortDir(workDir()) : "";
   let title = t("agent.ready", "Agent ready");
   let sub = `opencode · ${dir}`;
   let chip = h("span", { class: "chip c-mut", text: "idle" });
@@ -183,6 +184,47 @@ function paintStrip() {
   const l = led(26, Boolean(busy && !wait));
   A.ref.stripLed = l;
   clear(s, l, h("div", { class: "grow" }, h("b", { text: title }), h("div", { class: "sub", text: sub })), chip, h("div", { class: "progress" + (busy && !wait ? " ind" : ""), style: wait ? { width: "50%" } : {} }));
+}
+
+function rootCard() {
+  const e = S.active;
+  const tilde = (p) => p.replace(/^\/(Users|home)\/[^/]+/, "~");
+  const opts = [...e.ancestors.map((a) => ({ dir: a.dir, agents: a.agents, git: a.git })), { dir: e.dir, self: true }];
+  const hint = [...e.ancestors].reverse().find((a) => a.agents);
+  if (!opts.some((o) => o.dir === A.rootPick)) A.rootPick = e.root || "";
+  return h(
+    "div",
+    { class: "card rootcard", "data-card": "root" },
+    h("b", { text: t("root.t", "Where do you work from?") }),
+    h("p", { class: "subtle", text: t("root.d", "OpenCode works in one folder. Its sessions and your AGENTS.md rules belong to that folder, so pick the one you normally start your agent in. It can be this project or a folder above it.") }),
+    h(
+      "div",
+      { role: "radiogroup", class: "roots", "aria-label": t("root.t", "Where do you work from?") },
+      ...opts.map((o) => h("button", { class: "opt", role: "radio", "aria-checked": String(A.rootPick === o.dir), "data-root": o.dir, onclick: () => ((A.rootPick = o.dir), paintStream()) }, h("b", { text: tilde(o.dir) }), h("span", { text: o.self ? t("root.self", "this project only") : [o.agents && "AGENTS.md", o.git && "git repo"].filter(Boolean).join(" · ") || t("root.folder", "folder") }), hint && hint.dir === o.dir && h("span", { class: "chip c-br tag", text: t("root.hint", "has your AGENTS.md") }))),
+    ),
+    A.rootErr && h("div", { class: "err", text: A.rootErr }),
+    h(
+      "div",
+      { class: "crow" },
+      h("button", { class: "btn br", "data-act": "root-use", disabled: !A.rootPick, onclick: useRoot, text: t("root.use", "Use this folder") }),
+      e.root && h("button", { class: "btn g", "data-act": "root-cancel", onclick: () => ((S.rootAsk = false), notify(), paint()), text: t("ses.shareNo", "Cancel") }),
+    ),
+  );
+}
+
+async function useRoot() {
+  A.rootErr = "";
+  try {
+    await setRoot(A.rootPick);
+    A.connectedDir = "";
+    A.tl = null;
+    A.sessionId = "";
+    A.meta = null;
+    await connect();
+  } catch (e) {
+    A.rootErr = e.message;
+  }
+  bump();
 }
 
 function paintBar() {
@@ -206,6 +248,7 @@ function paintStream() {
   if (!st) return;
   const nearBottom = st.scrollHeight - st.scrollTop - st.clientHeight < 80;
   if (A.mode === "summary") return paintSummary(st);
+  if (needsRoot() || S.rootAsk) return clear(st, rootCard());
   if (A.mode === "sessions") return clear(st, A.sesPanel.el);
   const tl = A.tl;
   const kids = [];
@@ -214,7 +257,7 @@ function paintStream() {
   if (!A.tl || A.tl.items().length === 0) kids.push(suggestions());
   if (S.ocError) kids.push(h("div", { class: "err", "data-err": "opencode" }, t("agent.downMsg", "Could not reach the local OpenCode server: {e}", { e: S.ocError }), h("button", { class: "btn g", "data-act": "restart-oc", onclick: restartOc, text: t("agent.restart", "Restart OpenCode") })));
   if (!tl || tl.items().length === 0) {
-    if (S.active) kids.push(h("div", { class: "mt", text: t("agent.connected", "Connected to {p} · {dir}.", { p: S.active.project, dir: shortDir(S.active.dir) }) }));
+    if (S.active) kids.push(h("div", { class: "mt", text: t("agent.connected", "Working from {dir} · project {p}.", { p: S.active.project, dir: shortDir(workDir()) }) }));
   }
   if (tl) {
     for (const it of tl.items()) kids.push(renderItem(it));
@@ -423,7 +466,8 @@ function onKey(e) {
 
 async function connect() {
   if (!S.active || A.connecting) return;
-  const dir = S.active.dir;
+  if (needsRoot()) return bump();
+  const dir = workDir();
   if (A.connectedDir === dir) return;
   if (A.connectedDir) ((A.tl = null), (A.sessionId = ""), (A.meta = null), (A.qa = null), (A.picked = null), (A.mode = "chat"));
   A.connecting = true;
@@ -508,7 +552,7 @@ async function ensureSession() {
   A.tl = new Timeline(ses.id);
   A.meta = ses;
   A.startedAt = Date.now();
-  setPref(`session:${S.active.dir}`, ses.id);
+  setPref(`session:${workDir()}`, ses.id);
   return oc;
 }
 
@@ -520,7 +564,7 @@ export async function newSession() {
   A.meta = null;
   A.qa = null;
   A.mode = "chat";
-  if (S.active) setPref(`session:${S.active.dir}`, "");
+  if (S.active) setPref(`session:${workDir()}`, "");
   bump();
   A.ref.ta.focus();
 }
@@ -555,7 +599,7 @@ async function switchTo(id) {
   A.meta = null;
   A.qa = null;
   A.mode = "chat";
-  setPref(`session:${S.active.dir}`, id);
+  setPref(`session:${workDir()}`, id);
   bump();
   refreshMeta();
   A.ref.ta.focus();
@@ -593,7 +637,7 @@ function openSessions() {
     },
     remove: async (id) => {
       await S.oc.deleteSession(id).catch(() => {});
-      if (id === A.sessionId) ((A.tl = null), (A.sessionId = ""), (A.meta = null), setPref(`session:${S.active.dir}`, ""));
+      if (id === A.sessionId) ((A.tl = null), (A.sessionId = ""), (A.meta = null), setPref(`session:${workDir()}`, ""));
       loadSessions(A.sesPanel.query());
       bump();
     },
@@ -725,7 +769,7 @@ async function buildParts(text) {
   if (A.chips.page && S.tab) {
     chips.push(t("chip.page", "page"));
     ctx.push(`- Active tab: ${S.tab.url}${S.tab.title ? ` ("${S.tab.title}")` : ""}`);
-    if (S.active) ctx.push(`- Project: ${S.active.project} (${S.active.dir})`);
+    if (S.active) ctx.push(`- Project: ${S.active.project} (folder ${S.active.dir})`, `- Workspace root (your working folder): ${workDir()}`);
     if (A.guess) ctx.push(`- Likely source file for this page: ${A.guess}`);
   }
   if (A.chips.el && A.picked) {
@@ -749,7 +793,7 @@ async function buildParts(text) {
     A.chips.shot = false;
   }
   if (A.chips.el && A.picked && A.picked.crop) parts.push({ type: "file", mime: "image/png", filename: "element.png", url: A.picked.crop });
-  for (const f of A.attach || []) if (text.includes(`@${f}`)) parts.push({ type: "file", mime: "text/plain", filename: f.split("/").pop(), url: `file://${S.active.dir}/${f}` });
+  for (const f of A.attach || []) if (text.includes(`@${f}`)) parts.push({ type: "file", mime: "text/plain", filename: f.split("/").pop(), url: `file://${workDir()}/${f}` });
   A.attach = new Set();
   return { parts, chips };
 }
@@ -788,7 +832,7 @@ async function send(opts = {}) {
       A.sending = false;
       A.tl = null;
       A.sessionId = "";
-      setPref(`session:${S.active.dir}`, "");
+      setPref(`session:${workDir()}`, "");
       return send({ ...opts, retried: true, text, keepDraft: true });
     }
     if (e instanceof TypeError) {
@@ -897,7 +941,7 @@ function mirrorEvent(ev) {
   const part = ev.properties.part;
   if (part.type !== "tool" || part.state.status !== "completed" || A.mirror.seen.has(part.id)) return;
   A.mirror.seen.add(part.id);
-  const it = { tool: part.tool, arg: toolArg(part.tool, part.state.input || {}, S.active.dir) };
+  const it = { tool: part.tool, arg: toolArg(part.tool, part.state.input || {}, workDir()) };
   const tag = tagFor(it);
   const text = redact(`${it.tool} ${it.arg}`).slice(0, 300);
   const n = A.qa.n;

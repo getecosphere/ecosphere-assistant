@@ -74,11 +74,27 @@ export async function refreshPm() {
   notify();
 }
 
+/// The folder the agent works from: the one the user chose (often a parent of the estate), never guessed.
+export const workDir = (e = S.active) => (e ? e.root || e.dir : "");
+/// True while there is a folder above the estate to choose from and the user has not chosen yet.
+export const needsRoot = (e = S.active) => Boolean(e && !e.root && e.ancestors && e.ancestors.length);
+
+export async function setRoot(root) {
+  await call("workspace.set", { dir: S.active.dir, root });
+  const dir = S.active.dir;
+  S.oc = null;
+  S.ocError = "";
+  S.rootAsk = false;
+  await refreshEstates();
+  S.active = S.estates.find((e) => e.dir === dir) || S.active;
+  notify();
+}
+
 export async function selectProject(dir, { auto = false } = {}) {
   const e = S.estates.find((x) => x.dir === dir);
   if (!e || (S.active && S.active.dir === dir)) return;
+  if (S.oc && S.oc.dir !== workDir(e)) S.oc = null;
   S.active = e;
-  S.oc = null;
   S.ocError = "";
   if (!auto) setPref("project", dir);
   notify();
@@ -98,13 +114,14 @@ export async function refreshTab() {
 let ocStarting = null;
 export async function ensureOpenCode() {
   if (!S.active) throw new Error("no project");
-  if (S.oc && S.oc.dir === S.active.dir) return S.oc;
-  const dir = S.active.dir;
+  if (needsRoot()) throw Object.assign(new Error("choose the folder you work from first"), { code: "root" });
+  const dir = workDir();
+  if (S.oc && S.oc.dir === dir) return S.oc;
   // one start at a time: concurrent callers share it (two servers would split session and events)
   if (!ocStarting || ocStarting.dir !== dir) {
     const p = (async () => {
       try {
-        const { port, password } = await call("oc.start", { dir });
+        const { port, password } = await call("oc.start", { dir: S.active.dir });
         const oc = new OpenCode({ port, password, dir });
         await oc.health();
         S.oc = oc;

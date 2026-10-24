@@ -4,7 +4,7 @@ Chrome side panel: your **/project dashboard** next to the page you are on, plus
 (our own chat UI on the OpenCode server API — no OpenCode iframe). Everything runs on your machine.
 
 - **Agent** — chat on `opencode serve`: steps, diffs, permission cards (once / always for this project / reject), Stop, `/` commands,
-  `@` files, screenshot attach. **Sessions** (same as OpenCode): `+ New` starts blank (nothing is created until the first
+  `@` files, screenshot attach. **Work folder**: the panel never assumes the estate is where you work. If there are folders above it (below your home folder) it asks once "Where do you work from?" (e.g. `~/ar-rahman` rather than `~/ar-rahman/estates/shop`); OpenCode then runs in that folder, so its sessions and its `AGENTS.md` are the ones you already use there (menu → Work folder changes it). Other projects under the same folder follow the choice. **Sessions** (same as OpenCode): `+ New` starts blank (nothing is created until the first
   message), the title button lists, searches, switches, renames, forks and deletes sessions of this project, a `ctx 52k` chip shows
   what the model re-reads each turn (with a Compact button past 100k). Slash commands run in the panel: `/new` `/clear`,
   `/sessions` `/resume`, `/compact` `/summarize`, `/undo` `/redo`, `/rename <title>`, `/fork`; the project's own OpenCode
