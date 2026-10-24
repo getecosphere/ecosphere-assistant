@@ -6,6 +6,7 @@ import os from "node:os";
 import path from "node:path";
 import http from "node:http";
 import crypto from "node:crypto";
+import { spawnSync } from "node:child_process";
 import { fileURLToPath } from "node:url";
 
 const here = path.dirname(fileURLToPath(import.meta.url));
@@ -119,7 +120,10 @@ export const test = base.extend({
     await use(e);
     try {
       const servers = JSON.parse(fs.readFileSync(path.join(ah, "servers.json"), "utf8"));
-      for (const s of Object.values(servers)) try { process.kill(s.pid, "SIGKILL"); } catch {}
+      for (const s of Object.values(servers)) {
+        if (s.label) spawnSync("launchctl", ["remove", s.label]);
+        if (s.pid > 1) try { process.kill(s.pid, "SIGKILL"); } catch {}
+      }
     } catch {}
     srv.close();
     fs.rmSync(root, { recursive: true, force: true });

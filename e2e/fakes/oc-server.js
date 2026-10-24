@@ -5,7 +5,9 @@ const fs = require("fs");
 
 exports.start = (port) => {
   const password = process.env.OPENCODE_SERVER_PASSWORD || "";
-  const log = (o) => process.env.FAKE_OC_LOG && fs.appendFileSync(process.env.FAKE_OC_LOG, JSON.stringify(o) + "\n");
+  // launchd starts the server without the test env: the fixture puts oc.log next to its fake $HOME
+  const logFile = process.env.FAKE_OC_LOG || require("path").join(process.env.HOME, "..", "oc.log");
+  const log = (o) => fs.appendFileSync(logFile, JSON.stringify(o) + "\n");
   const sessions = new Map(); // id -> {id, messages: [{info, parts}]}
   const sse = new Set();
   const perms = new Map(); // id -> resolve

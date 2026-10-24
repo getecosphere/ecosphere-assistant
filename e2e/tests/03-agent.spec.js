@@ -131,7 +131,7 @@ test("OpenCode down → clear state with a restart that works", async ({ app, en
   await ask(panel, "first");
   await expect(panel.locator('[data-kind="done"]')).toBeVisible();
   const fs = await import("node:fs");
-  for (const s of Object.values(JSON.parse(fs.readFileSync(env.ah + "/servers.json", "utf8")))) process.kill(s.pid, "SIGKILL");
+  for (const s of Object.values(JSON.parse(fs.readFileSync(env.ah + "/servers.json", "utf8")))) { if (s.label) (await import("node:child_process")).spawnSync("launchctl", ["remove", s.label]); if (s.pid > 1) try { process.kill(s.pid, "SIGKILL"); } catch {} }
   await ask(panel, "second");
   await expect(panel.locator('[data-err="opencode"]')).toBeVisible();
   await expect(panel.locator("[data-status]")).toHaveText("agent offline");

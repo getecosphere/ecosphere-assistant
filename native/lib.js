@@ -347,6 +347,41 @@ function freePort() {
   });
 }
 
+const sh = (v) => `'${String(v).replace(/'/g, `'\\''`)}'`;
+
+/// On macOS the server must NOT be a child of Chrome: files a Chrome child creates get
+/// com.apple.quarantine, and OpenCode (a Bun binary) unpacks a native .dylib into $TMPDIR at start,
+/// which Gatekeeper then refuses ("... .dylib Not Opened"). A launchd job has no such parent. The
+/// per-launch password goes into an owner-only script, never into argv (ps shows argv to every user).
+async function spawnServer(bin, dir, port, password) {
+  const tmp = path.join(HOME_DIR, "tmp");
+  fs.mkdirSync(tmp, { recursive: true, mode: 0o700 });
+  const logFile = path.join(HOME_DIR, "opencode-server.log");
+  const env = await childEnv();
+  if (process.platform === "darwin") {
+    const label = `com.ecosphere.assistant.opencode.${port}`;
+    const script = path.join(HOME_DIR, `run-${port}.sh`);
+    fs.writeFileSync(
+      script,
+      `#!/bin/sh\ncd ${sh(dir)} || exit 1\nexport OPENCODE_SERVER_PASSWORD=${sh(password)} OPENCODE_SERVER_USERNAME=opencode TMPDIR=${sh(tmp)} PATH=${sh(env.PATH)} HOME=${sh(os.homedir())}\nexec ${sh(bin)} serve --hostname 127.0.0.1 --port ${port}\n`,
+      { mode: 0o700 },
+    );
+    const r = await runCmd("launchctl", ["submit", "-l", label, "-o", logFile, "-e", logFile, "--", "/bin/sh", script]);
+    if (r.code !== 0) throw new Reject(`could not start OpenCode: ${firstLine(r)}`);
+    return { pid: 0, label, script };
+  }
+  const log = fs.openSync(logFile, "a");
+  const child = spawn(bin, ["serve", "--hostname", "127.0.0.1", "--port", String(port)], { cwd: dir, env: { ...env, OPENCODE_SERVER_PASSWORD: password, OPENCODE_SERVER_USERNAME: "opencode", TMPDIR: tmp }, detached: true, stdio: ["ignore", log, log] });
+  child.unref();
+  return { pid: child.pid };
+}
+
+async function launchdPid(label) {
+  const r = await runCmd("launchctl", ["list", label], { timeout: 5000 });
+  const m = r.stdout.match(/"PID"\s*=\s*(\d+)/);
+  return m ? Number(m[1]) : 0;
+}
+
 const starting = new Map();
 function ocStart(dir) {
   if (!starting.has(dir)) starting.set(dir, ocStartOnce(dir).finally(() => starting.delete(dir)));
@@ -363,22 +398,29 @@ async function ocStartOnce(dir) {
   const password = crypto.randomBytes(18).toString("base64url");
   fs.mkdirSync(HOME_DIR, { recursive: true });
   const log = fs.openSync(path.join(HOME_DIR, "opencode-server.log"), "a");
-  const env = { ...(await childEnv()), OPENCODE_SERVER_PASSWORD: password, OPENCODE_SERVER_USERNAME: "opencode" };
-  const child = spawn(bin, ["serve", "--hostname", "127.0.0.1", "--port", String(port)], { cwd: dir, env, detached: true, stdio: ["ignore", log, log] });
-  child.unref();
-  servers[dir] = { pid: child.pid, port, password };
+  const started = await spawnServer(bin, dir, port, password);
+  servers[dir] = { pid: started.pid, port, password, label: started.label, script: started.script };
   writeJson(SERVERS_PATH, servers, 0o600);
   for (let i = 0; i < 60; i++) {
     await sleep(500);
-    if (await health(port, password, 1200)) return { port, password, reused: false };
+    if (await health(port, password, 1200)) {
+      if (started.label) {
+        servers[dir].pid = await launchdPid(started.label);
+        writeJson(SERVERS_PATH, servers, 0o600);
+      }
+      return { port, password, reused: false };
+    }
   }
   throw new Reject("OpenCode did not become healthy");
 }
 
-function ocStop(dir) {
+async function ocStop(dir) {
   const servers = readJson(SERVERS_PATH, {});
   const cur = servers[dir];
-  if (cur && cur.pid > 1) {
+  if (cur && cur.label) {
+    await runCmd("launchctl", ["remove", cur.label], { timeout: 5000 });
+    if (cur.script) fs.rmSync(cur.script, { force: true });
+  } else if (cur && cur.pid > 1) {
     try {
       process.kill(cur.pid, "SIGTERM");
     } catch {
@@ -639,7 +681,7 @@ const ACTIONS = {
   },
 
   async "oc.stop"(a) {
-    ocStop(estateDir(a.dir));
+    await ocStop(estateDir(a.dir));
     return { ok: true };
   },
 
