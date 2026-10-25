@@ -276,3 +276,5 @@ h3.mdh{font-size:15px}h4.mdh{font-size:14px}h5.mdh,h6.mdh,h7.mdh{font-size:13.5p
 @keyframes wfade{from{opacity:0;transform:translateY(2px)}to{opacity:1;transform:none}}
 @media (prefers-reduced-motion:reduce){.w{animation:none}}
 .st.it{grid-template-columns:14px minmax(0,1fr);font:12.5px var(--sans);color:var(--ink2);padding:5px 10px}
+.sesbar .cc,.sesbar .btn{white-space:nowrap;flex:none}
+.sesbtn{flex:0 1 auto}
