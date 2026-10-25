@@ -71,3 +71,33 @@ test("no old iframes, no password form, no exposed port input", async ({ app }) 
   await expect(panel.locator('input[type="password"]')).toHaveCount(0);
   await expect(panel.locator('input[type="number"]')).toHaveCount(0);
 });
+
+test("a configured panel shows a green progress bar while it checks, never the setup steps", async ({ app, env }) => {
+  env.approve();
+  await app.panel.evaluate(() => chrome.storage.local.set({ prefs: { account: "tester@example.com" } }));
+  env.setState((s) => (s.whoDelay = 1500));
+  await app.panel.reload();
+  await app.panel.evaluate(() => {
+    window.__seen = [];
+    new MutationObserver(() => {
+      const ob = document.querySelector('[data-view="onboarding"]');
+      if (ob && !ob.classList.contains("hidden")) window.__seen.push("onboarding");
+    }).observe(document.body, { subtree: true, childList: true, attributes: true });
+  });
+  await expect(app.panel.locator(".topbar")).toBeVisible();
+  await expect(app.panel.locator("[data-boot]")).toContainText(/sign-in|helper|projects/);
+  await expect(app.panel.locator('[data-view="onboarding"]')).toBeHidden();
+  await expect(app.panel.locator('[data-tab="agent"]')).toBeVisible({ timeout: 20000 });
+  await expect(app.panel.locator(".topbar")).toBeHidden();
+  expect(await app.panel.evaluate(() => window.__seen)).toEqual([]);
+});
+
+test("onboarding shows how far along the setup is (green bar, n of required steps)", async ({ app, env }) => {
+  env.approve();
+  await app.panel.reload();
+  const bar = app.panel.locator("[data-ob-progress]");
+  await expect(bar).toBeVisible();
+  const now = Number(await bar.getAttribute("aria-valuenow"));
+  expect(now).toBeGreaterThanOrEqual(1);
+  expect(Number(await bar.getAttribute("aria-valuemax"))).toBe(4);
+});

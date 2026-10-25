@@ -2,7 +2,7 @@
 import { h, clear } from "./dom.js";
 import { t } from "./i18n.js";
 import { led } from "./led.js";
-import { S, call, notify, refreshHelper, refreshWho, refreshEstates, refreshPm, selectProject, flags } from "./app.js";
+import { S, call, notify, setBoot, refreshHelper, refreshWho, refreshEstates, refreshPm, selectProject, flags } from "./app.js";
 import { pref, setPref } from "./prefs.js";
 import { matchEstate } from "./page.js";
 
@@ -37,22 +37,27 @@ export function mountOnboarding(root) {
 
 async function recheck() {
   ui.checking = true;
-  notify();
+  setBoot({ label: t("boot.helper", "Looking for the helper…"), pct: 25 });
   await refreshHelper();
   if (S.helper) {
+    setBoot({ label: t("boot.account", "Checking your sign-in and projects…"), pct: 60 });
     await Promise.all([refreshWho(), refreshEstates()]);
+    setBoot({ label: t("boot.pm", "Checking the /project link…"), pct: 90 });
     await refreshPm();
   }
   ui.checking = false;
-  notify();
+  setBoot(null);
 }
 
 function paint(el) {
   const list = steps();
   const cur = !S.helper ? 1 : list.findIndex((s) => !s.done && !s.optional);
   const doneN = list.filter((s) => s.done).length;
+  const req = list.filter((s) => !s.optional);
+  const reqDone = req.filter((s) => s.done).length;
   clear(
     el,
+    h("div", { class: "progress ob-prog", role: "progressbar", "aria-label": t("ob.progress", "Setup progress"), "aria-valuemin": "0", "aria-valuemax": String(req.length), "aria-valuenow": String(reqDone), "data-ob-progress": "" }, h("i", { style: { width: `${Math.round((reqDone / req.length) * 100)}%` } })),
     h("div", { class: "ob-hero" }, led(64, ui.loginBusy || ui.installBusy || ui.checking), h("h1", { text: t("ob.title", "A coding agent beside your page") }), h("p", { text: t("ob.sub", "The code stays on your machine. This panel sets everything up; you only approve.") })),
     ...list.map((s, i) => stepEl(s, i, cur)),
     h("div", { class: "ob-foot" }, h("span", { class: "grow", text: t("ob.foot", "helper · opencode · eco · all local") }), h("span", { text: `${Math.min(doneN + 1, 5)}/5` }), h("button", { class: "btn g", onclick: recheck, disabled: ui.checking, text: t("ob.retry", "Check again") })),

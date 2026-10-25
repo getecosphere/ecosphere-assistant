@@ -61,6 +61,8 @@ export function mountAgent(root) {
   A.root = el;
   build();
   subscribe(() => {
+    const key = `${needsRoot()}|${Boolean(S.rootAsk)}`;
+    if (key !== A.rootKey) ((A.rootKey = key), paintStream());
     syncContext();
     paintStrip();
     paintCtx();
@@ -244,7 +246,7 @@ function rootCard() {
       { class: "crow" },
       h("button", { class: "btn br", "data-act": "root-use", disabled: !A.rootPick, onclick: useRoot, text: t("root.use", "Use this folder") }),
       h("button", { class: "btn g", "data-act": "root-browse", onclick: () => browseTo(A.rootPick || workDir() || e.dir), text: t("root.other", "Another folder…") }),
-      e.root && h("button", { class: "btn g", "data-act": "root-cancel", onclick: () => ((S.rootAsk = false), notify(), paint()), text: t("ses.shareNo", "Cancel") }),
+      h("button", { class: "btn g", "data-act": "root-cancel", onclick: () => ((S.rootAsk = false), (A.rootDismiss = true), (A.rootKey = ""), notify(), paintStream()), text: t("ses.shareNo", "Cancel") }),
     ),
   );
 }
@@ -285,6 +287,7 @@ function paintStream() {
   if (!st) return;
   const nearBottom = st.scrollHeight - st.scrollTop - st.clientHeight < 80;
   if (A.mode === "summary") return paintSummary(st);
+  if (needsRoot() && A.rootDismiss && !S.rootAsk) return clear(st, h("div", { class: "card rootcard", "data-card": "root-note" }, h("b", { text: t("root.none", "No work folder chosen yet") }), h("p", { class: "subtle", text: t("root.noneD", "The agent needs a folder to work in before it can start.") }), h("div", { class: "crow" }, h("button", { class: "btn br", "data-act": "root-choose", onclick: () => ((A.rootDismiss = false), paintStream()), text: t("root.choose", "Choose work folder") }))));
   if (needsRoot() || S.rootAsk) return clear(st, rootCard());
   if (A.mode === "sessions") return clear(st, A.sesPanel.el);
   const tl = A.tl;
@@ -872,7 +875,10 @@ async function send(opts = {}) {
       setPref(`session:${workDir()}`, "");
       return send({ ...opts, retried: true, text, keepDraft: true });
     }
-    if (e instanceof TypeError) {
+    if (e.code === "root") {
+      A.rootDismiss = false;
+      paintStream();
+    } else if (e instanceof TypeError) {
       // the server is gone (fetch failed): show the "OpenCode is not running" state with a restart
       S.oc = null;
       S.ocError = e.message;

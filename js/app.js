@@ -26,6 +26,13 @@ export const flags = () => ({ pm: pref("pm", false) || Boolean(S.pm && S.pm.link
 
 export const call = (action, args, opts) => bridge.request(action, args, opts);
 
+/// Startup / re-check progress: {label, pct, block}. `block` shows the loading screen instead of any
+/// setup step, so a configured panel never flashes the checklist before it knows the real state.
+export function setBoot(b) {
+  S.boot = b;
+  notify();
+}
+
 export async function refreshHelper() {
   try {
     S.helper = await call("hello");

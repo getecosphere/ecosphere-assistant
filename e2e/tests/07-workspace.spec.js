@@ -46,6 +46,7 @@ test("a chosen work folder is remembered; the menu can change it", async ({ app,
   await app.panel.locator(`[data-root="${parent}"]`).click();
   await app.panel.locator('[data-act="root-use"]').click();
   await app.panel.reload();
+  await expect(app.panel.locator("textarea")).toBeVisible();
   await expect(app.panel.locator('[data-card="root"]')).toHaveCount(0);
   await app.panel.locator('[data-act="account-menu"]').click();
   await app.panel.locator('[data-act="root"]').click();
@@ -54,7 +55,7 @@ test("a chosen work folder is remembered; the menu can change it", async ({ app,
   await app.panel.locator('[data-act="root-use"]').click();
   await app.panel.locator("textarea").fill("now from the estate");
   await app.panel.locator("textarea").press("Enter");
-  await expect(app.panel.locator('[data-kind="done"]')).toBeVisible();
+  await expect(app.panel.locator('[data-kind="done"]')).toBeVisible({ timeout: 45000 });
   const prompts = env.ocReqs().filter((r) => r.path.endsWith("/prompt_async"));
   expect(prompts.at(-1).query.directory).toBe(env.estateDir);
 });

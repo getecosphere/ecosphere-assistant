@@ -233,3 +233,18 @@ code{font-size:.92em}
 .sesrow .ib{width:26px;height:26px;border:0;border-radius:6px;background:none;color:var(--muted);font-size:13px}
 .sesrow .ib:hover{background:var(--raised)}
 .dot{display:inline-block;width:7px;height:7px;margin-right:6px;border-radius:50%;background:var(--brand)}
+
+/* progress: startup / re-check bar at the very top, and the setup bar in onboarding */
+.topbar{flex:none;height:3px;background:var(--line2);overflow:hidden}
+.topbar[hidden]{display:none}
+.topbar i{display:block;height:100%;width:0;background:var(--ok);transition:width .45s ease}
+.ob-prog{position:static;height:6px;margin:14px 20px 0;border-radius:999px;background:var(--line2);overflow:hidden;width:auto}
+.ob-prog i{display:block;height:100%;background:var(--ok);border-radius:999px;transition:width .45s ease}
+.boot .ob-hero h2{margin:14px 0 6px;font-size:19px;letter-spacing:-.02em;font-weight:800}
+@media (prefers-reduced-motion:reduce){.topbar i,.ob-prog i{transition:none}}
+
+/* work-folder card: breathing room inside the stream */
+.rootcard{margin:12px;padding:14px 14px 16px;border:1px solid var(--line);border-radius:12px;background:var(--surface)}
+.rootcard p{margin:6px 0 10px}
+.rootcard .roots{display:flex;flex-direction:column;margin:10px 0 12px;border:1px solid var(--line);border-radius:10px;overflow:hidden}
+.rootcard .crow{display:flex;flex-wrap:wrap;gap:8px;margin-top:4px}

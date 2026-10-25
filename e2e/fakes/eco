@@ -17,6 +17,7 @@ const [a, b, c] = args;
 
 (async () => {
   if (a === "--version") return out("eco 0.0.0-fake");
+  if (a === "whoami") await sleep(st.whoDelay || 0);
   if (a === "whoami") return out(st.who.signedIn ? st.who : { signedIn: false });
   if (a === "login") {
     console.log("Sign-in is Google only — opening your browser…");

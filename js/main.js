@@ -2,7 +2,7 @@ import { h, clear, svg, ICON, trapEscape } from "./dom.js";
 import { t, initLang } from "./i18n.js";
 import { led } from "./led.js";
 import { loadPrefs, pref, setPref, applyTheme } from "./prefs.js";
-import { S, subscribe, notify, call, refreshHelper, refreshWho, refreshEstates, refreshPm, refreshTab, selectProject, flags, workDir } from "./app.js";
+import { S, subscribe, notify, call, refreshHelper, refreshWho, refreshEstates, refreshPm, refreshTab, selectProject, flags, workDir, setBoot } from "./app.js";
 import { needsOnboarding, mountOnboarding } from "./onboarding.js";
 import { mountAgent, agentState, onAgentStatus } from "./agent.js";
 import { mountQa, qaBadge, refresh as refreshQa } from "./qa.js";
@@ -11,18 +11,21 @@ import { mountCompose, refresh as refreshCompose } from "./compose.js";
 
 const root = document.getElementById("app");
 let header, tabs, stage, menu = null, closeMenu = () => {};
-let agent, onboardingPaint, views = {};
+let agent, onboardingPaint, topbar, views = {};
 let shown = ""; // which view's data was last refreshed
 
 async function boot() {
   await loadPrefs();
   applyTheme();
   await initLang(pref("lang", "en"));
+  topbar = h("div", { class: "topbar", role: "progressbar", "aria-valuemin": "0", "aria-valuemax": "100", hidden: true }, h("i"));
   header = h("div");
   tabs = h("div");
   stage = h("div", { class: "screen" });
-  root.append(header, tabs, stage);
+  root.append(topbar, header, tabs, stage);
 
+  views.boot = h("div", { class: "screen boot", "data-view": "boot", role: "status" });
+  stage.append(views.boot);
   views.onboarding = h("div", { class: "screen hidden", "data-view": "onboarding" });
   stage.append(views.onboarding);
   onboardingPaint = mountOnboarding(views.onboarding);
@@ -40,6 +43,7 @@ async function boot() {
 
   onAgentStatus(paintHeader);
   subscribe(render);
+  S.boot = { label: t("boot.start", "Starting…"), pct: 8, block: true };
   render();
 
   chrome.tabs.onActivated.addListener(refreshTab);
@@ -52,12 +56,17 @@ async function boot() {
     }
   });
 
+  setBoot({ label: t("boot.helper", "Looking for the helper…"), pct: 22, block: true });
   await refreshHelper();
   if (S.helper) {
+    setBoot({ label: t("boot.account", "Checking your sign-in and projects…"), pct: 48, block: true });
     await Promise.all([refreshWho(), refreshEstates()]);
+    setBoot({ label: t("boot.tab", "Reading the current tab…"), pct: 76, block: true });
     await refreshTab();
+    setBoot({ label: t("boot.pm", "Checking the /project link…"), pct: 92, block: true });
     await refreshPm();
   }
+  setBoot(null);
   setInterval(() => flags().pm && S.active && !document.hidden && (refreshPm(), S.view === "qa" && refreshQa()), 30000);
 }
 
@@ -66,8 +75,29 @@ function setView(v) {
   notify();
 }
 
+function paintBoot() {
+  const b = S.boot;
+  topbar.hidden = !b;
+  if (b) {
+    topbar.firstChild.style.width = `${b.pct || 0}%`;
+    topbar.setAttribute("aria-valuenow", String(b.pct || 0));
+    topbar.setAttribute("aria-label", b.label || "");
+  }
+  const block = Boolean(b && b.block);
+  views.boot.classList.toggle("hidden", !block);
+  if (block) clear(views.boot, h("div", { class: "ob-hero" }, led(64, true), h("h2", { text: t("boot.t", "Getting your workspace ready") }), h("p", { "data-boot": "", text: b.label })));
+  return block;
+}
+
 function render() {
   const onboarding = needsOnboarding();
+  if (paintBoot()) {
+    views.onboarding.classList.add("hidden");
+    views.app.classList.add("hidden");
+    paintHeader(true);
+    clear(tabs);
+    return;
+  }
   views.onboarding.classList.toggle("hidden", !onboarding);
   views.app.classList.toggle("hidden", onboarding);
   if (onboarding) {
