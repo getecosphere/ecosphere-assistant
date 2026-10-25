@@ -6,6 +6,7 @@ import { S, call, notify, subscribe, ensureOpenCode, flags, workDir, needsRoot, 
 import { pref, setPref } from "./prefs.js";
 import { Timeline, toolArg } from "./session.js";
 import * as page from "./page.js";
+import { renderMarkdown } from "./md.js";
 import { sessionsPanel, sessionTitle, fmtTokens } from "./sessions.js";
 
 const A = {
@@ -61,7 +62,7 @@ export function mountAgent(root) {
   A.root = el;
   build();
   subscribe(() => {
-    const key = `${needsRoot()}|${Boolean(S.rootAsk)}`;
+    const key = `${needsRoot()}|${Boolean(S.rootAsk)}|${pref("steps", "intent")}`;
     if (key !== A.rootKey) ((A.rootKey = key), paintStream());
     syncContext();
     paintStrip();
@@ -285,7 +286,6 @@ function paintBar() {
 function paintStream() {
   const st = A.ref.stream;
   if (!st) return;
-  const nearBottom = st.scrollHeight - st.scrollTop - st.clientHeight < 80;
   if (A.mode === "summary") return paintSummary(st);
   if (needsRoot() && A.rootDismiss && !S.rootAsk) return clear(st, h("div", { class: "card rootcard", "data-card": "root-note" }, h("b", { text: t("root.none", "No work folder chosen yet") }), h("p", { class: "subtle", text: t("root.noneD", "The agent needs a folder to work in before it can start.") }), h("div", { class: "crow" }, h("button", { class: "btn br", "data-act": "root-choose", onclick: () => ((A.rootDismiss = false), paintStream()), text: t("root.choose", "Choose work folder") }))));
   if (needsRoot() || S.rootAsk) return clear(st, rootCard());
@@ -310,7 +310,16 @@ function paintStream() {
   }
   clear(st, ...kids);
   paintCtx();
-  if (nearBottom) st.scrollTop = st.scrollHeight;
+  // Never chase the streaming text: a new question goes to the top of the view and the reply is read
+  // from its first line; the user scrolls. A reopened session starts at its latest message.
+  const users = st.querySelectorAll('[data-kind="user"]');
+  if (A.anchorUser && users.length > A.userCount) {
+    st.scrollTop += users[users.length - 1].getBoundingClientRect().top - st.getBoundingClientRect().top - 8;
+    A.anchorUser = false;
+  } else if (A.scrollEnd && tl && tl.items().length) {
+    st.scrollTop = st.scrollHeight;
+    A.scrollEnd = false;
+  }
 }
 
 function suggestions() {
@@ -323,13 +332,69 @@ function suggestions() {
   return h("div", { class: "sugs", "data-sugs": "" }, ...out);
 }
 
+const INTENT = { read: "Reading {a}", list: "Listing {a}", grep: "Searching for “{a}”", glob: "Finding files {a}", fetch: "Fetching {a}", text: "{a}" };
+const intentText = (i) => t(`intent.${i.k}`, INTENT[i.k], { a: i.a });
+
+// Replies appear like typing with a soft fade, not all at once. Only text that arrives while the user is
+// waiting is animated; history shows at once. Each text part keeps its element, so a repaint of the
+// stream does not restart the animation.
+const R = new Map();
+const reduced = () => matchMedia("(prefers-reduced-motion: reduce)").matches;
+
+function paintBlock(r) {
+  const text = r.full.slice(0, r.shown);
+  if (r.text === text && !r.fading) return;
+  const now = performance.now();
+  const { node, words } = renderMarkdown(text, (i) => {
+    if (r.times[i] === undefined) return ((r.times[i] = now), 0);
+    const age = now - r.times[i];
+    return age < 700 ? age : null;
+  });
+  r.times.length = words;
+  r.fading = words > 0 && now - r.times[words - 1] < 700;
+  r.text = text;
+  r.el.replaceChildren(node);
+}
+
+function tick() {
+  A.revealRaf = 0;
+  let more = false;
+  for (const r of R.values()) {
+    if (r.shown < r.full.length) {
+      const to = Math.min(r.full.length, r.shown + Math.max(2, Math.ceil((r.full.length - r.shown) / 40)));
+      const ws = /\s/.exec(r.full.slice(to, to + 12));
+      r.shown = Math.min(r.full.length, ws ? to + ws.index : to);
+    }
+    paintBlock(r);
+    if (r.shown < r.full.length || r.fading) more = true;
+  }
+  if (more) A.revealRaf = requestAnimationFrame(tick);
+}
+
+function textBlock(it) {
+  let r = R.get(it.id);
+  if (!r) R.set(it.id, (r = { full: "", shown: A.revealArm && !reduced() ? 0 : it.text.length, times: [], text: null, fading: false, el: h("div", { class: "mt md", "data-kind": "text" }) }));
+  r.full = it.text;
+  r.shown = Math.min(r.shown, r.full.length);
+  if (!A.revealArm || reduced()) r.shown = r.full.length;
+  paintBlock(r);
+  if ((r.shown < r.full.length || r.fading) && !A.revealRaf) A.revealRaf = requestAnimationFrame(tick);
+  return r.el;
+}
+
 function renderItem(it) {
   switch (it.kind) {
     case "user":
       return h("div", { class: "mu", "data-kind": "user" }, it.text, it.chips.length > 0 && h("div", { class: "chips" }, ...it.chips.map((c) => h("span", { text: c }))));
     case "text":
-      return h("div", { class: "mt", "data-kind": "text", text: it.text });
+      return textBlock(it);
     case "step": {
+      const mode = pref("steps", "intent");
+      if (it.status !== "error" && mode !== "verbose") {
+        // quiet: nothing; intent: only what the call is for (a bare command says nothing useful)
+        if (mode === "quiet" || !it.intent) return null;
+        return h("div", { class: `st it ${it.status === "completed" ? "" : "run"}`, "data-kind": "step", "data-intent": "" }, h("span", { class: "i", text: it.status === "completed" ? "✓" : "●" }), h("span", { class: "a", title: it.arg, text: intentText(it.intent) }));
+      }
       const icon = it.status === "completed" ? "✓" : it.status === "error" ? "✕" : "●";
       return h("div", { class: `st ${it.status === "completed" ? "" : it.status === "error" ? "err" : "run"}`, "data-kind": "step" }, h("span", { class: "i", text: icon }), h("span", { class: "t", text: it.tool }), h("span", { class: "a", title: it.arg, text: it.arg || it.error || "" }), h("span", { class: "m", text: it.meta }));
     }
@@ -520,6 +585,7 @@ async function connect() {
         const tl = new Timeline(A.sessionId);
         tl.load(await oc.messages(A.sessionId));
         A.tl = tl;
+        A.scrollEnd = true;
         refreshMeta();
       } catch {
         A.sessionId = "";
@@ -598,6 +664,8 @@ async function ensureSession() {
 
 /// A blank start: nothing is created on the server until the first message (no empty sessions pile up).
 export async function newSession() {
+  R.clear();
+  A.revealArm = false;
   A.confirmShare = false;
   A.sessionId = "";
   A.tl = null;
@@ -635,6 +703,9 @@ async function switchTo(id) {
   }
   A.tl = tl;
   A.sessionId = id;
+  R.clear();
+  A.revealArm = false;
+  A.scrollEnd = true;
   A.confirmShare = false;
   A.meta = null;
   A.qa = null;
@@ -849,6 +920,9 @@ async function send(opts = {}) {
     return runBuiltin(slash[1], slash[2]);
   }
   if (A.mode === "sessions") A.mode = "chat";
+  A.revealArm = true;
+  A.anchorUser = true;
+  A.userCount = A.ref.stream.querySelectorAll('[data-kind="user"]').length;
   A.sending = true;
   paintActions();
   try {

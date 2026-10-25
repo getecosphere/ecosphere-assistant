@@ -22,7 +22,7 @@ test("send a prompt: auth'd session, context chip, steps, done card", async ({ a
   await ask(panel, "Why is the library grid heavy on mobile?");
   await expect(panel.locator('[data-kind="user"]')).toContainText("Why is the library grid heavy");
   await expect(panel.locator('[data-kind="user"] .chips')).toContainText("page");
-  await expect(panel.locator('[data-kind="step"]').first()).toContainText("read");
+  await expect(panel.locator('[data-kind="step"]').first()).toContainText(/read/i);
   await expect(panel.locator('[data-kind="text"]').last()).toContainText("lazy loading");
   await expect(panel.locator('[data-kind="done"]')).toBeVisible();
   const reqs = env.ocReqs();

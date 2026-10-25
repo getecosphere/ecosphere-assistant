@@ -192,8 +192,9 @@ export function toolItem(part, dir = "") {
     const minus = lines.filter((l) => l[0] === "-").length;
     return { kind: "diff", id: part.id, file, plus, minus, lines: lines.slice(0, 12), more: Math.max(0, lines.length - 12), status };
   }
+  const intent = toolIntent(part.tool, input, dir);
   const meta = st.time && st.time.end && st.time.start ? `${((st.time.end - st.time.start) / 1000).toFixed(1)}s` : "";
-  return { kind: "step", id: part.id, tool: part.tool, arg: toolArg(part.tool, input, dir), meta, status, error: st.error, output: st.output };
+  return { kind: "step", id: part.id, tool: part.tool, arg: toolArg(part.tool, input, dir), intent, meta, status, error: st.error, output: st.output };
 }
 
 export function toolArg(tool, input, dir) {
@@ -240,4 +241,32 @@ export function results(tl) {
   const files = tl.files.size;
   if (files) out.push({ key: "files", n: files });
   return out;
+}
+
+/// What a tool call is for, in a form the panel translates: {k, a}. null when the tool gave no intention
+/// (a bare shell command says nothing a user can use).
+export function toolIntent(tool, input, dir = "") {
+  const file = rel(input.filePath || input.path || "", dir);
+  switch (tool) {
+    case "bash":
+      return typeof input.description === "string" && input.description.trim() ? { k: "text", a: input.description.trim() } : null;
+    case "task":
+      return { k: "text", a: String(input.description || "") || "subtask" };
+    case "read":
+      return file ? { k: "read", a: file } : null;
+    case "list":
+      return { k: "list", a: file || "." };
+    case "grep":
+      return input.pattern ? { k: "grep", a: String(input.pattern) } : null;
+    case "glob":
+      return input.pattern ? { k: "glob", a: String(input.pattern) } : null;
+    case "webfetch":
+      try {
+        return { k: "fetch", a: new URL(String(input.url)).host };
+      } catch {
+        return null;
+      }
+    default:
+      return null;
+  }
 }
