@@ -181,9 +181,7 @@ function paintStrip() {
   if (wait) ((title = t("agent.waiting", "Agent is waiting for your permission")), (sub = `${A.tl.stepCount} ${t("agent.steps", "steps")} · ${dir}`), (chip = h("span", { class: "chip c-w", text: t("status.perm", "permission needed") })));
   else if (busy) ((title = t("agent.working", "Agent is working · {n} steps", { n: A.tl.stepCount })), (sub = `opencode · ${dir}`), (chip = h("span", { class: "chip c-br", text: t("status.working", "working") })));
   if (S.ocError) ((title = t("agent.down", "OpenCode is not running")), (chip = h("span", { class: "chip c-bad", text: "down" })));
-  const l = led(26, Boolean(busy && !wait));
-  A.ref.stripLed = l;
-  clear(s, l, h("div", { class: "grow" }, h("b", { text: title }), h("div", { class: "sub", text: sub })), chip, h("div", { class: "progress" + (busy && !wait ? " ind" : ""), style: wait ? { width: "50%" } : {} }));
+  clear(s, h("div", { class: "grow" }, h("b", { text: title }), h("div", { class: "sub", text: sub })), chip, h("div", { class: "progress" + (busy && !wait ? " ind" : ""), style: wait ? { width: "50%" } : {} }));
 }
 
 function rootCard() {
