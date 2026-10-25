@@ -17,7 +17,7 @@ Everything the dashboard asks for. Copy is English; the six languages follow whe
   5. `04-qa-requests.jpg` — QA requests from /project
 - **Promo tiles:** `promo-small.jpg` (440×280, required), `promo-marquee.jpg` (1400×560)
 - **Promo video:** the Web Store accepts a YouTube URL only. The film is the JS film at
-  `https://getecosphere.com/static/assistant-film/` (embedded on `/install`); record it with a screen recorder
+  `https://getecosphere.com/static/assistant-film/index.html` (embedded on `/install`); record it with a screen recorder
   (full screen, sound on) and upload to YouTube if a store video is wanted.
 - **Homepage URL:** https://getecosphere.com/install · **Support URL:** https://getecosphere.com/support
 - **Privacy policy URL:** https://getecosphere.com/privacy (the extension section is current as of 25 Oct 2026; it must be **live** before submit)
