@@ -80,7 +80,14 @@ export function mountAgent(root) {
 
 function build() {
   A.ref.strip = h("div", { class: "strip", role: "status" });
-  A.ref.bar = h("div", { class: "sesbar" });
+  A.ref.barRow = h("div", { class: "sesbar" });
+  A.ref.tip = h("div", { class: "ctxtip", id: "ctx-tip", role: "tooltip", hidden: true });
+  A.ref.bar = h("div", { class: "sesbarwrap" }, A.ref.barRow, A.ref.tip);
+  A.ref.barRow.addEventListener("mouseover", (e) => e.target.closest("[data-ctx]") && showTip("hover"));
+  A.ref.barRow.addEventListener("mouseout", (e) => e.target.closest("[data-ctx]") && hideTip());
+  A.ref.tip.addEventListener("mouseenter", () => clearTimeout(A.tipTimer));
+  A.ref.tip.addEventListener("mouseleave", hideTip);
+  document.addEventListener("keydown", (e) => e.key === "Escape" && A.tipMode && ((A.tipMode = ""), paintTip()));
   A.ref.ctx = h("div", { class: "ctxwrap" });
   A.ref.stream = h("div", { class: "scroll", "aria-live": "polite", "data-stream": "" });
   A.ref.comp = h("div", { class: "comp" });
@@ -267,20 +274,88 @@ async function useRoot() {
   bump();
 }
 
+// ── context meter: what "ctx 51k" means and what to do about it ──────────
+
+const num = (n) => n.toLocaleString("en-US");
+
+async function loadLimits() {
+  if (A.limits || A.limitsLoading) return;
+  A.limitsLoading = true;
+  try {
+    const out = {};
+    for (const p of (await S.oc.providers()).providers || []) for (const [id, m] of Object.entries(p.models || {})) if (m.limit && m.limit.context) out[`${p.id}/${id}`] = m.limit.context;
+    A.limits = out;
+    paintBar();
+  } catch {
+    A.limits = {}; // unknown limits: levels fall back to fixed sizes
+  }
+}
+
+/// {tokens, limit, pct, level: ok|warn|bad}; the level follows the share of the model's memory used.
+function ctxInfo() {
+  const k = A.tl && A.tl.lastTokens();
+  if (!k || !k.total) return null;
+  const m = A.tl.model();
+  const limit = (m && A.limits && A.limits[`${m.providerID}/${m.modelID}`]) || 0;
+  const pct = limit ? Math.min(100, Math.round((k.total / limit) * 100)) : 0;
+  const level = limit ? (pct >= 80 ? "bad" : pct >= 50 ? "warn" : "ok") : k.total >= 150000 ? "bad" : k.total >= 80000 ? "warn" : "ok";
+  return { k, limit, pct, level };
+}
+
+function showTip(mode) {
+  clearTimeout(A.tipTimer);
+  if (A.tipMode !== "pin") A.tipMode = mode;
+  paintTip();
+}
+function hideTip() {
+  clearTimeout(A.tipTimer);
+  A.tipTimer = setTimeout(() => A.tipMode !== "pin" && ((A.tipMode = ""), paintTip()), 180);
+}
+
+function paintTip() {
+  const tip = A.ref.tip;
+  const c = ctxInfo();
+  tip.hidden = !A.tipMode || !c;
+  if (tip.hidden) return;
+  const words = Math.round(c.k.total * 0.75);
+  const advice = { ok: t("ctx.ok", "Healthy. Nothing to do."), warn: t("ctx.warn", "Getting long. If you are about to start a different topic, a new session is cheaper and keeps the agent sharper."), bad: t("ctx.bad", "Almost full. Compact now, or start a new session: when the memory fills up the agent can forget early details.") }[c.level];
+  const cost = A.meta && A.meta.cost > 0 ? (A.meta.cost < 0.01 ? "<$0.01" : `$${A.meta.cost.toFixed(2)}`) : "";
+  const row = (k, v, hint) => h("div", { class: "kv" }, h("span", { text: k }), h("b", { text: v }), hint && h("small", { text: hint }));
+  clear(
+    tip,
+    h("b", { class: "tt", text: t("ctx.title", "Conversation size (context)") }),
+    h("p", { text: t("ctx.what", "Every time you send a message, the agent re-reads the whole conversation so far. This is how big that conversation is now: {n} tokens, about {w} words. A token is a small piece of text (roughly ¾ of a word).", { n: num(c.k.total), w: num(words) }) }),
+    c.limit > 0 && h("div", { class: "meter", role: "img", "aria-label": `${c.pct}%` }, h("i", { class: c.level, style: { width: `${Math.max(2, c.pct)}%` } })),
+    c.limit > 0 && h("p", { class: "sm", text: t("ctx.of", "{p}% of this model's memory ({l} tokens).", { p: c.pct, l: num(c.limit) }) }),
+    h("p", { class: `advice ${c.level}`, text: advice }),
+    h("details", {}, h("summary", { text: t("ctx.break", "What it is made of") }),
+      row(t("ctx.cached", "Remembered from before (cached)"), num(c.k.cacheRead), t("ctx.cachedH", "Re-read at a lower price.")),
+      row(t("ctx.written", "Newly remembered"), num(c.k.cacheWrite)),
+      row(t("ctx.input", "New this turn"), num(c.k.input)),
+      row(t("ctx.output", "The agent's last answer"), num(c.k.output + c.k.reasoning)),
+      cost && row(t("ctx.cost", "Cost of this session so far"), cost)),
+    h("div", { class: "crow" },
+      h("button", { class: "btn br sm", "data-act": "compact", onclick: () => ((A.tipMode = ""), paintTip(), runBuiltin("compact")), text: t("ses.compact", "Compact") }),
+      h("button", { class: "btn g sm", "data-act": "tip-new", onclick: () => ((A.tipMode = ""), paintTip(), newSession()), text: "+ " + t("ses.new", "New session") })),
+    h("p", { class: "sm", text: t("ctx.how", "Compact: the agent summarizes the conversation (the gist stays, the detail goes). Your files are not touched. New session: starts blank, the old one stays in the list. One topic per session is the cheapest way to work.") }),
+  );
+}
+
 function paintBar() {
-  const b = A.ref.bar;
+  const b = A.ref.barRow;
   if (!b) return;
-  const n = A.tl ? A.tl.contextTokens() : 0;
-  const big = n >= 100000;
+  if (S.oc) loadLimits();
+  const c = ctxInfo();
   clear(
     b,
     h("button", { class: "sesbtn", "data-act": "sessions", "aria-haspopup": "dialog", "aria-expanded": String(A.mode === "sessions"), title: t("ses.open", "Sessions"), onclick: () => (A.mode === "sessions" ? closeSessions() : openSessions()) }, h("span", { class: "t", "data-session-title": "", text: A.meta ? sessionTitle(A.meta) : t("ses.new", "New session") }), h("span", { text: "▾" })),
-    n > 0 && h("span", { class: "cc" + (big ? " on" : ""), "data-ctx": "", title: t("ses.ctx", "Size of the conversation sent to the model. A smaller context costs fewer tokens: /compact summarizes it."), text: `ctx ${fmtTokens(n)}` }),
+    c && h("button", { class: `cc ctx-${c.level}`, "data-ctx": "", "aria-describedby": "ctx-tip", "aria-expanded": String(Boolean(A.tipMode)), onclick: () => ((A.tipMode = A.tipMode === "pin" ? "" : "pin"), paintTip()), onfocus: () => showTip("hover"), onblur: hideTip, text: `ctx ${fmtTokens(c.k.total)}${c.limit ? ` · ${c.pct}%` : ""}` }),
+    c && c.level === "bad" && h("button", { class: "btn g sm", "data-act": "compact", onclick: () => runBuiltin("compact"), text: t("ses.compact", "Compact") }),
     A.meta && A.meta.share && A.meta.share.url && h("span", { class: "cc on", "data-shared": "", title: t("ses.sharedT", "Shared: anyone with this link can read the session"), text: t("ses.shared", "shared") }),
-    big && h("button", { class: "btn g sm", "data-act": "compact", onclick: () => runBuiltin("compact"), text: t("ses.compact", "Compact") }),
     h("span", { class: "grow" }),
     h("button", { class: "btn g sm", "data-act": "new-session", onclick: newSession, text: "+ " + t("ses.newShort", "New") }),
   );
+  if (A.tipMode) paintTip();
 }
 
 function paintStream() {

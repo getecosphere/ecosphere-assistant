@@ -32,13 +32,21 @@ export class Timeline {
     return this.rows().reverse().find((m) => m.role === "user" && Timeline.userText(m).trim()) || null;
   }
 
-  /// Size of the conversation the model last saw (input + cache + output), from the newest assistant message.
-  contextTokens() {
+  /// Token counts of the newest assistant message: the conversation the model last saw.
+  lastTokens() {
     for (const m of this.rows().reverse()) {
       const k = m.role === "assistant" && m.info && m.info.tokens;
-      if (k) return (k.input || 0) + (k.output || 0) + (k.reasoning || 0) + ((k.cache && k.cache.read) || 0) + ((k.cache && k.cache.write) || 0);
+      if (!k) continue;
+      const out = { input: k.input || 0, output: k.output || 0, reasoning: k.reasoning || 0, cacheRead: (k.cache && k.cache.read) || 0, cacheWrite: (k.cache && k.cache.write) || 0 };
+      return { ...out, total: out.input + out.output + out.reasoning + out.cacheRead + out.cacheWrite };
     }
-    return 0;
+    return null;
+  }
+
+  /// Size of the conversation the model last saw (input + cache + output).
+  contextTokens() {
+    const k = this.lastTokens();
+    return k ? k.total : 0;
   }
 
   /// {providerID, modelID} of the newest assistant message.
