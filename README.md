@@ -63,6 +63,8 @@ STORE=1 npx playwright test tests/94-store.spec.js   # regenerate the store scre
 
 `store/package.sh` builds `store/ecosphere-assistant-cws.zip` and `helper-install.sh` (host it at
 `https://getecosphere.com/downloads/helper-install.sh`). Not published until the owner says so.
+`store/listing.md` has every dashboard answer and the submit steps; after the first upload put the store ID in `native/store-id`
+so the helper trusts it. Graphics: `store/make-icons.py` and `STORE=1 npx playwright test tests/94-store.spec.js` (from `e2e/`).
 
 ## Uninstall
 

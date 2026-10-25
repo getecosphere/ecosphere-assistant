@@ -7,6 +7,7 @@ set -euo pipefail
 
 HOST_NAME="com.ecosphere.assistant"
 EXT_ID="__EXT_ID__"     # replaced by build-helper.sh; computed from manifest.json when run from the repo
+STORE_ID="__STORE_ID__"     # the Chrome Web Store id, filled by build-helper.sh from native/store-id (empty until published)
 INSTALL_DIR="$HOME/.ecosphere-assistant"
 SELF="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/$(basename "${BASH_SOURCE[0]}")"
 SRC="$(dirname "$SELF")"
@@ -44,7 +45,10 @@ if [ "$EXT_ID" = "__EXT_ID__" ]; then
     process.stdout.write([...hex].map((x) => String.fromCharCode(97 + parseInt(x, 16))).join(""));
   ' "$SRC/../manifest.json")"
 fi
-echo "extension id: $EXT_ID"
+if [ "$STORE_ID" = "__STORE_ID__" ]; then STORE_ID="$(tr -d '[:space:]' < "$SRC/store-id" 2>/dev/null || true)"; fi
+ORIGINS="\"chrome-extension://$EXT_ID/\""
+if [[ "$STORE_ID" =~ ^[a-p]{32}$ ]]; then ORIGINS="$ORIGINS, \"chrome-extension://$STORE_ID/\""; fi
+echo "extension id: $EXT_ID${STORE_ID:+ and store id $STORE_ID}"
 
 cat > "$INSTALL_DIR/host" <<LAUNCH
 #!$NODE_BIN
@@ -59,7 +63,7 @@ manifest() {
   "description": "Ecosphere Assistant helper: runs eco and OpenCode for the side panel",
   "path": "$INSTALL_DIR/host",
   "type": "stdio",
-  "allowed_origins": ["chrome-extension://$EXT_ID/"]
+  "allowed_origins": [$ORIGINS]
 }
 JSON
 }

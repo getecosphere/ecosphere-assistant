@@ -10,8 +10,9 @@ const m = JSON.parse(fs.readFileSync(process.argv[1], "utf8"));
 const hex = c.createHash("sha256").update(Buffer.from(m.key, "base64")).digest("hex").slice(0, 32);
 process.stdout.write([...hex].map((x) => String.fromCharCode(97 + parseInt(x, 16))).join(""));
 ' "$DIR/../manifest.json")"
-sed "s/__EXT_ID__\"     #/$ID\"     #/" "$DIR/install.sh" | sed '/^exit 0$/q' > "$OUT"
+STORE_ID="$(tr -d '[:space:]' < "$DIR/store-id" 2>/dev/null || true)"
+sed -e "s/__EXT_ID__\"     #/$ID\"     #/" -e "s/__STORE_ID__\"     #/$STORE_ID\"     #/" "$DIR/install.sh" | sed '/^exit 0$/q' > "$OUT"
 printf '__PAYLOAD__\n' >> "$OUT"
 tar czf - -C "$DIR" lib.js host.js | base64 >> "$OUT"
 chmod +x "$OUT"
-echo "wrote $OUT (extension id $ID)"
+echo "wrote $OUT (extension id $ID${STORE_ID:+, store id $STORE_ID})"

@@ -17,10 +17,13 @@ if grep -R --include='*.js' -nE 'eval\(|new Function\(' js page background.js >/
 
 out="store/ecosphere-assistant-cws.zip"
 rm -f "$out"
-zip -q -r "$out" \
-  manifest.json background.js sidepanel.html sidepanel.css \
-  js page fonts icons \
-  -x '*/test/*' '*.DS_Store'
+# The Web Store assigns the extension id itself, so the dev "key" is not shipped. After the first upload put the
+# id from the dashboard in native/store-id so the helper installer accepts it (see rules/chrome-web-store.md).
+stage="$(mktemp -d)"
+cp -R background.js sidepanel.html sidepanel.css js page fonts icons "$stage"/
+node -e 'const m=require("./manifest.json"); delete m.key; require("fs").writeFileSync(process.argv[1]+"/manifest.json", JSON.stringify(m,null,2));' "$stage"
+(cd "$stage" && zip -q -r "$OLDPWD/$out" . -x '*/test/*' '*.DS_Store')
+rm -rf "$stage"
 
 # helper installer, for hosting at https://getecosphere.com/downloads/helper-install.sh
 native/build-helper.sh >/dev/null
