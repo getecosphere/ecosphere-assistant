@@ -111,7 +111,7 @@ export async function selectProject(dir, { auto = false } = {}) {
 /// The active tab, and which project owns it. A matching project is switched to automatically.
 export async function refreshTab() {
   const tab = await activeTab().catch(() => null);
-  S.tab = tab ? { id: tab.id, url: tab.url, windowId: tab.windowId, title: tab.title } : null;
+  S.tab = tab ? { id: tab.id, url: tab.url, windowId: tab.windowId, title: tab.title, favIconUrl: tab.favIconUrl || "" } : null;
   S.tabEstate = tab ? matchEstate(tab.url, S.estates) : null;
   if (S.tabEstate && (!S.active || S.active.dir !== S.tabEstate.dir)) await selectProject(S.tabEstate.dir, { auto: true });
   notify();

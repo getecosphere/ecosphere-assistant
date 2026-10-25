@@ -248,3 +248,11 @@ code{font-size:.92em}
 .rootcard p{margin:6px 0 10px}
 .rootcard .roots{display:flex;flex-direction:column;margin:10px 0 12px;border:1px solid var(--line);border-radius:10px;overflow:hidden}
 .rootcard .crow{display:flex;flex-wrap:wrap;gap:8px;margin-top:4px}
+
+/* project favicon in the header (the ring runs only while the agent works) */
+.mark .fav{width:24px;height:24px;border-radius:6px;object-fit:contain;background:var(--surface)}
+.mark .tile{position:relative;display:block;border:1px solid var(--line);background:var(--raised)}
+.mark .tile::before{content:"";position:absolute;inset:5px;border:1.5px solid var(--subtle);border-radius:50%;opacity:.7}
+.mark.run .fav{animation:ring 1.4s ease-out infinite}
+@keyframes ring{0%{box-shadow:0 0 0 0 var(--ok)}100%{box-shadow:0 0 0 7px transparent}}
+@media (prefers-reduced-motion:reduce){.mark.run .fav{animation:none;box-shadow:0 0 0 2px var(--ok)}}

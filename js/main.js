@@ -134,6 +134,30 @@ function statusText() {
   return [t("status.ready", "ready"), ""];
 }
 
+const imgOk = (u) => /^(https?:|data:image\/)/.test(u || "");
+
+/// The project's own favicon: from its open tab when there is one (remembered), else from its site.
+function favUrl() {
+  const e = S.active;
+  if (!e) return "";
+  const live = S.tab && S.tabEstate && S.tabEstate.dir === e.dir && imgOk(S.tab.favIconUrl) ? S.tab.favIconUrl : "";
+  if (live && pref(`fav:${e.dir}`, "") !== live) setPref(`fav:${e.dir}`, live);
+  const saved = pref(`fav:${e.dir}`, "");
+  if (live || imgOk(saved)) return live || saved;
+  return e.hostnames && e.hostnames[0] ? `https://${e.hostnames[0]}/favicon.ico` : "";
+}
+
+function projectMark(busy) {
+  const tile = () => h("span", { class: "fav tile", "aria-hidden": "true" }); // the default blank favicon
+  const url = favUrl();
+  const el = h("span", { class: "mark" + (busy ? " run" : ""), "data-mark": "" });
+  if (!url) return (el.append(tile()), el);
+  const img = h("img", { class: "fav", src: url, alt: "", width: "24", height: "24", referrerpolicy: "no-referrer" });
+  img.addEventListener("error", () => img.replaceWith(tile()));
+  el.append(img);
+  return el;
+}
+
 function paintHeader(onboarding) {
   const a = agentState();
   const [st, cls] = statusText();
@@ -144,7 +168,7 @@ function paintHeader(onboarding) {
       "div",
       { class: "ph" },
       h("h1", { class: "sr", text: "Ecosphere Assistant" }),
-      h("span", { class: "mark" }, led(24, a.busy && !a.waiting)),
+      onboarding || !S.active ? h("span", { class: "mark" }, led(24, a.busy && !a.waiting)) : projectMark(a.busy && !a.waiting),
       onboarding ? h("b", { style: { fontSize: "13.5px" }, text: "Ecosphere Assistant" }) : h("button", { class: "projbtn", "data-act": "project-menu", "aria-haspopup": "menu", "aria-expanded": String(menu === "project"), "aria-label": t("hdr.switch", "Switch project"), onclick: () => toggleMenu("project") }, h("span", { text: S.active ? S.active.project : t("hdr.noProject", "No project") }), chip, svg(ICON.chevron, 12)),
       h("span", { class: "grow" }),
       !onboarding && h("span", { class: `status ${cls}`, "data-status": "", text: st }),

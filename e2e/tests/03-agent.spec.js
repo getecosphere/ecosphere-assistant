@@ -49,12 +49,12 @@ test("the helper's OpenCode server needs its per-launch password (panel holds no
 test("LED animates only while the agent is working", async ({ app, env }) => {
   await intoApp(app, env);
   const { panel } = app;
-  await expect(panel.locator(".ph .led.run")).toHaveCount(0);
+  await expect(panel.locator(".ph .mark.run")).toHaveCount(0);
   await ask(panel, "slow please");
-  await expect(panel.locator(".ph .led.run")).toHaveCount(1);
+  await expect(panel.locator(".ph .mark.run")).toHaveCount(1);
   await expect(panel.locator("[data-status]")).toHaveText("working");
   await panel.locator('[data-act="stop"]').click();
-  await expect(panel.locator(".ph .led.run")).toHaveCount(0);
+  await expect(panel.locator(".ph .mark.run")).toHaveCount(0);
 });
 
 for (const [answer, act, done] of [["once", "perm-once", "allowed once"], ["always", "perm-always", "always allowed"], ["reject", "perm-reject", "rejected"]]) {
