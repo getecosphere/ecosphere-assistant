@@ -151,6 +151,9 @@ export const test = base.extend({
     const panel = await ctx.newPage();
     await panel.setViewportSize({ width: 400, height: 860 });
     await panel.goto(`chrome-extension://${id}/sidepanel.html`);
+    // the welcome tour is covered by its own spec; every other spec starts past it
+    await panel.evaluate(() => chrome.storage.local.set({ prefs: { introDone: true } }));
+    await panel.reload();
     await page.bringToFront();
     await use({ page, panel, id });
   },

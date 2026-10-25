@@ -300,3 +300,20 @@ h3.mdh{font-size:15px}h4.mdh{font-size:14px}h5.mdh,h6.mdh,h7.mdh{font-size:13.5p
 .ctxtip .btn.br{background:var(--brand);color:var(--on-brand);border:0}
 .ctxtip .btn.g{background:var(--surface);color:var(--ink);border:1px solid var(--line)}
 .ctxtip{overflow-wrap:anywhere}
+
+/* welcome tour */
+.intro{flex:1;min-height:0;display:flex;flex-direction:column;overflow:auto}
+.intro .ob-prog{margin:12px 16px 0;flex:none}
+.in-card{flex:1;padding:18px 20px 8px}
+.in-card .in-led{margin-bottom:8px}
+.in-n{font:11px var(--mono);letter-spacing:.06em;text-transform:uppercase;color:var(--subtle)}
+.in-card h2{margin:6px 0 10px;font-size:21px;letter-spacing:-.03em;font-weight:800;outline:none}
+.in-card p{margin:0 0 10px;color:var(--ink2);font-size:13.5px;line-height:1.55}
+.in-card ul{margin:0 0 10px;padding-left:1.15em;color:var(--ink2);font-size:13.5px;line-height:1.5}.in-card li{margin:.35em 0}
+.in-x{margin-top:12px;padding:8px 10px;border:1px solid var(--line);border-radius:10px;background:var(--sunk)}
+.in-x summary{cursor:pointer;font-weight:700;color:var(--brand);font-size:12.5px}.in-x p{margin:8px 0 0;font-size:12.5px}
+.flow{display:flex;align-items:stretch;gap:6px;margin:4px 0 14px}
+.flow>div{flex:1;min-width:0;padding:8px 9px;border:1px solid var(--line);border-radius:10px;background:var(--surface);display:flex;flex-direction:column;gap:2px}
+.flow b{font-size:12.5px}.flow span{font:11px var(--mono);color:var(--subtle)}.flow .sub2{margin-top:6px}
+.flow>i{align-self:center;font-style:normal;color:var(--subtle)}
+.in-nav{display:flex;align-items:center;gap:8px;padding:12px 20px 18px;flex:none;position:sticky;bottom:0;background:var(--bg)}

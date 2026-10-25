@@ -1,6 +1,7 @@
 import { h, clear, svg, ICON, trapEscape } from "./dom.js";
 import { t, initLang } from "./i18n.js";
 import { led } from "./led.js";
+import { mountIntro, replayIntro } from "./intro.js";
 import { loadPrefs, pref, setPref, applyTheme } from "./prefs.js";
 import { S, subscribe, notify, call, refreshHelper, refreshWho, refreshEstates, refreshPm, refreshTab, selectProject, flags, workDir, setBoot } from "./app.js";
 import { needsOnboarding, mountOnboarding } from "./onboarding.js";
@@ -11,7 +12,7 @@ import { mountCompose, refresh as refreshCompose } from "./compose.js";
 
 const root = document.getElementById("app");
 let header, tabs, stage, menu = null, closeMenu = () => {};
-let agent, onboardingPaint, topbar, views = {};
+let agent, onboardingPaint, introPaint, topbar, views = {};
 let shown = ""; // which view's data was last refreshed
 
 async function boot() {
@@ -26,6 +27,9 @@ async function boot() {
 
   views.boot = h("div", { class: "screen boot", "data-view": "boot", role: "status" });
   stage.append(views.boot);
+  views.intro = h("div", { class: "screen hidden", "data-view": "intro" });
+  stage.append(views.intro);
+  introPaint = mountIntro(views.intro);
   views.onboarding = h("div", { class: "screen hidden", "data-view": "onboarding" });
   stage.append(views.onboarding);
   onboardingPaint = mountOnboarding(views.onboarding);
@@ -92,8 +96,19 @@ function paintBoot() {
 function render() {
   const onboarding = needsOnboarding();
   if (paintBoot()) {
+    views.intro.classList.add("hidden");
     views.onboarding.classList.add("hidden");
     views.app.classList.add("hidden");
+    paintHeader(true);
+    clear(tabs);
+    return;
+  }
+  const intro = Boolean(S.intro) || (onboarding && !pref("introDone", false));
+  views.intro.classList.toggle("hidden", !intro);
+  if (intro) {
+    views.onboarding.classList.add("hidden");
+    views.app.classList.add("hidden");
+    introPaint();
     paintHeader(true);
     clear(tabs);
     return;
@@ -213,6 +228,7 @@ function accountMenu() {
     h("div", { class: "note", text: t("menu.dockNote", "Chrome keeps the panel side in Settings → Appearance → Side panel position; these buttons open it.") }),
     h("div", { class: "sep" }),
     item(`${t("menu.openProject", "Open /project")} ↗`, { attrs: { "data-act": "open-project" }, on: () => ((menu = null), chrome.tabs.create({ url: (S.pm && S.pm.dashboard) || "https://getecosphere.com/project" })) }),
+    item(t("menu.tour", "Welcome tour"), { attrs: { "data-act": "tour" }, on: () => ((menu = null), replayIntro()) }),
     item(t("menu.steps", "Steps"), { attrs: { "data-act": "steps", title: t("menu.steps.t", "How much of the agent's work to show: only its intention, nothing, or every command") }, on: () => ((menu = null), setPref("steps", { intent: "quiet", quiet: "verbose", verbose: "intent" }[pref("steps", "intent")]), notify()) }, t(`steps.${pref("steps", "intent")}`, { intent: "intention", quiet: "quiet", verbose: "verbose" }[pref("steps", "intent")])),
     S.active && item(t("menu.root", "Work folder"), { attrs: { "data-act": "root", title: t("menu.root.t", "The folder OpenCode runs in: its sessions and AGENTS.md come from here") }, on: () => ((menu = null), (S.view = "agent"), (S.rootAsk = true), notify()) }, shortPath(workDir())),
     S.active && item(t("menu.folder", "Folder"), { attrs: { "data-act": "folder" }, on: () => navigator.clipboard.writeText(S.active.dir).catch(() => {}) }, shortPath(S.active.dir)),

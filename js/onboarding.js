@@ -2,6 +2,7 @@
 import { h, clear } from "./dom.js";
 import { t } from "./i18n.js";
 import { led } from "./led.js";
+import { replayIntro } from "./intro.js";
 import { S, call, notify, setBoot, refreshHelper, refreshWho, refreshEstates, refreshPm, selectProject, flags } from "./app.js";
 import { pref, setPref } from "./prefs.js";
 import { matchEstate } from "./page.js";
@@ -60,7 +61,7 @@ function paint(el) {
     h("div", { class: "progress ob-prog", role: "progressbar", "aria-label": t("ob.progress", "Setup progress"), "aria-valuemin": "0", "aria-valuemax": String(req.length), "aria-valuenow": String(reqDone), "data-ob-progress": "" }, h("i", { style: { width: `${Math.round((reqDone / req.length) * 100)}%` } })),
     h("div", { class: "ob-hero" }, led(64, ui.loginBusy || ui.installBusy || ui.checking), h("h1", { text: t("ob.title", "A coding agent beside your page") }), h("p", { text: t("ob.sub", "The code stays on your machine. This panel sets everything up; you only approve.") })),
     ...list.map((s, i) => stepEl(s, i, cur)),
-    h("div", { class: "ob-foot" }, h("span", { class: "grow", text: t("ob.foot", "helper · opencode · eco · all local") }), h("span", { text: `${Math.min(doneN + 1, 5)}/5` }), h("button", { class: "btn g", onclick: recheck, disabled: ui.checking, text: t("ob.retry", "Check again") })),
+    h("div", { class: "ob-foot" }, h("span", { class: "grow", text: t("ob.foot", "helper · opencode · eco · all local") }), h("span", { text: `${Math.min(doneN + 1, 5)}/5` }), h("button", { class: "btn g", "data-act": "tour", onclick: replayIntro, text: t("ob.tour", "How it works") }), h("button", { class: "btn g", onclick: recheck, disabled: ui.checking, text: t("ob.retry", "Check again") })),
   );
 }
 
