@@ -19,7 +19,7 @@ Everything the dashboard asks for. Copy is English; the six languages follow whe
 - **Promo video:** the Web Store accepts a YouTube URL only. The film is the JS film at
   `https://getecosphere.com/static/assistant-film/` (embedded on `/install`); record it with a screen recorder
   (full screen, sound on) and upload to YouTube if a store video is wanted.
-- **Homepage URL:** https://getecosphere.com/install · **Support URL:** https://github.com/getecosphere/ecosphere-assistant
+- **Homepage URL:** https://getecosphere.com/install · **Support URL:** https://getecosphere.com/support
 - **Privacy policy URL:** https://getecosphere.com/privacy (the extension section is current as of 25 Oct 2026; it must be **live** before submit)
 
 ### Detailed description
@@ -44,7 +44,7 @@ Everything the dashboard asks for. Copy is English; the six languages follow whe
 > in: the extension stores no key or token and reads a page only when you ask.
 >
 > Setup is a short checklist on first open, with a welcome tour. Requirements: Chrome 116+, macOS or Linux, Node.js 18+
-> (Windows via WSL is planned). The agent uses the AI model you configured in OpenCode. Source: https://github.com/getecosphere/ecosphere-assistant
+> (Windows via WSL is planned). The agent uses the AI model you configured in OpenCode.
 
 ## Privacy practices tab (answers read from the code)
 
