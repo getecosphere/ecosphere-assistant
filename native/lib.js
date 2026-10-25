@@ -154,7 +154,7 @@ const isAbove = (a, b) => b === a || b.startsWith(a + path.sep);
 /// It is never guessed: the panel asks whenever there is a folder above to choose from.
 function workRoot(dir) {
   const saved = (loadConfig().workspaces || {})[dir];
-  return saved && isAbove(saved, dir) && fs.existsSync(saved) ? saved : dir;
+  return saved && fs.existsSync(saved) ? saved : dir;
 }
 
 function estateInfo(dir) {
@@ -739,13 +739,35 @@ const ACTIONS = {
     return estateInfo(estateDir(a.dir));
   },
 
-  /// Choose the folder the agent works from (the workspace root). It has to be the estate itself or a
-  /// folder above it below $HOME; other approved estates under the same folder follow it.
+  /// Sub-folders of a folder inside $HOME, for the panel's folder browser (names only, no file content).
+  async "fs.dirs"(a) {
+    const home = os.homedir();
+    const dir = path.resolve(isAbs(a.dir) ? a.dir : home);
+    if (dir !== home && !dir.startsWith(home + path.sep)) bad("folders outside your home folder are not offered");
+    let names = [];
+    try {
+      names = fs.readdirSync(dir, { withFileTypes: true }).filter((e) => e.isDirectory() && !e.name.startsWith(".") && !SCAN_SKIP.has(e.name)).map((e) => e.name);
+    } catch {
+      bad("cannot read this folder");
+    }
+    names.sort((x, y) => x.localeCompare(y));
+    return {
+      dir,
+      parent: dir === home ? "" : path.dirname(dir),
+      selectable: dir !== home,
+      agents: fs.existsSync(path.join(dir, "AGENTS.md")),
+      git: fs.existsSync(path.join(dir, ".git")),
+      dirs: names.slice(0, 300).map((n) => ({ name: n, agents: fs.existsSync(path.join(dir, n, "AGENTS.md")), git: fs.existsSync(path.join(dir, n, ".git")) })),
+    };
+  },
+
+  /// Choose the folder the agent works from (the workspace root): any folder inside $HOME, the user's
+  /// pick. Other approved estates under the same folder follow it.
   async "workspace.set"(a) {
     const dir = estateDir(a.dir);
     if (!isAbs(a.root)) bad("root must be an absolute path");
     const root = path.resolve(a.root);
-    if (!isAbove(root, dir) || (root !== dir && !root.startsWith(os.homedir() + path.sep)) || !fs.statSync(root, { throwIfNoEntry: false })?.isDirectory()) bad("the workspace folder must be this project or a folder above it (below your home folder)");
+    if (!root.startsWith(os.homedir() + path.sep) || !fs.statSync(root, { throwIfNoEntry: false })?.isDirectory()) bad("the workspace folder must be a folder inside your home folder");
     const prev = workRoot(dir);
     const cfg = loadConfig();
     cfg.workspaces = { ...(cfg.workspaces || {}), [dir]: root };

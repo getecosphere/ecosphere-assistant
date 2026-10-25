@@ -159,11 +159,20 @@ test("workspace.set: the work folder must be the project or a folder above it, b
   const info = await call("estate.info", { dir: estate });
   assert.equal(info.data.root, "");
   assert.deepEqual(info.data.ancestors.map((a) => a.dir), [path.join(tmp, "code")]);
-  for (const bad of [tmp, "/", os.tmpdir(), path.join(estate, "web"), "relative/path"]) {
+  for (const bad of [tmp, "/", os.tmpdir(), "relative/path", path.join(tmp, "missing")]) {
     const r = await call("workspace.set", { dir: estate, root: bad });
     assert.equal(r.ok, false, bad);
   }
   const ok = await call("workspace.set", { dir: estate, root: path.join(tmp, "code") });
   assert.equal(ok.ok, true);
   assert.equal(ok.data.root, path.join(tmp, "code"));
+});
+
+test("fs.dirs lists sub-folders inside $HOME only", async () => {
+  const r = await call("fs.dirs", { dir: tmp });
+  assert.equal(r.ok, true);
+  assert.equal(r.data.selectable, false);
+  assert.ok(r.data.dirs.some((d) => d.name === "code"));
+  assert.equal((await call("fs.dirs", { dir: "/etc" })).ok, false);
+  assert.equal((await call("fs.dirs", { dir: path.join(tmp, "..") })).ok, false);
 });

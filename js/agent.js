@@ -184,9 +184,47 @@ function paintStrip() {
   clear(s, h("div", { class: "grow" }, h("b", { text: title }), h("div", { class: "sub", text: sub })), chip, h("div", { class: "progress" + (busy && !wait ? " ind" : ""), style: wait ? { width: "50%" } : {} }));
 }
 
+const tilde = (p) => p.replace(/^\/(Users|home)\/[^/]+/, "~");
+
+async function browseTo(dir) {
+  A.browse = { ...(A.browse || {}), loading: true, err: "" };
+  paintStream();
+  try {
+    A.browse = await call("fs.dirs", { dir });
+  } catch (e) {
+    A.browse = { ...(A.browse || {}), loading: false, err: e.message };
+  }
+  paintStream();
+}
+
+function browser() {
+  const b = A.browse;
+  const badges = (x) => [x.agents && "AGENTS.md", x.git && "git"].filter(Boolean).join(" · ");
+  return h(
+    "div",
+    { class: "card rootcard", "data-card": "root-browse" },
+    h("b", { text: t("root.browse", "Choose a folder") }),
+    h("div", { class: "mono", style: { fontSize: "12px", wordBreak: "break-all" }, "data-browse-dir": "", text: b.dir ? tilde(b.dir) : "…" }),
+    b.err && h("div", { class: "err", text: b.err }),
+    h(
+      "div",
+      { class: "roots", role: "list" },
+      b.parent && h("button", { class: "opt", "data-act": "browse-up", onclick: () => browseTo(b.parent) }, h("b", { text: "↑ " + t("root.up", "up one folder") }), h("span", { text: tilde(b.parent) })),
+      ...(b.dirs || []).map((d) => h("button", { class: "opt", "data-browse": d.name, onclick: () => browseTo(`${b.dir}/${d.name}`) }, h("b", { text: d.name }), h("span", { text: badges(d) }))),
+      b.dirs && !b.dirs.length && h("div", { class: "mt subtle", text: t("root.noSub", "No sub-folders here.") }),
+    ),
+    h(
+      "div",
+      { class: "crow" },
+      h("button", { class: "btn br", "data-act": "browse-use", disabled: !b.selectable, title: b.selectable ? "" : t("root.homeNo", "Pick a folder inside your home folder, not the home folder itself."), onclick: () => ((A.rootPick = b.dir), (A.browse = null), useRoot()), text: t("root.useHere", "Use this folder") }),
+      h("button", { class: "btn g", "data-act": "browse-back", onclick: () => ((A.browse = null), paintStream()), text: t("ses.shareNo", "Cancel") }),
+    ),
+  );
+}
+
 function rootCard() {
+  if (A.browse) return browser();
   const e = S.active;
-  const tilde = (p) => p.replace(/^\/(Users|home)\/[^/]+/, "~");
   const opts = [...e.ancestors.map((a) => ({ dir: a.dir, agents: a.agents, git: a.git })), { dir: e.dir, self: true }];
   const hint = [...e.ancestors].reverse().find((a) => a.agents);
   if (!opts.some((o) => o.dir === A.rootPick)) A.rootPick = e.root || "";
@@ -205,6 +243,7 @@ function rootCard() {
       "div",
       { class: "crow" },
       h("button", { class: "btn br", "data-act": "root-use", disabled: !A.rootPick, onclick: useRoot, text: t("root.use", "Use this folder") }),
+      h("button", { class: "btn g", "data-act": "root-browse", onclick: () => browseTo(A.rootPick || workDir() || e.dir), text: t("root.other", "Another folder…") }),
       e.root && h("button", { class: "btn g", "data-act": "root-cancel", onclick: () => ((S.rootAsk = false), notify(), paint()), text: t("ses.shareNo", "Cancel") }),
     ),
   );

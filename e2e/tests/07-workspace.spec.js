@@ -58,3 +58,29 @@ test("a chosen work folder is remembered; the menu can change it", async ({ app,
   const prompts = env.ocReqs().filter((r) => r.path.endsWith("/prompt_async"));
   expect(prompts.at(-1).query.directory).toBe(env.estateDir);
 });
+
+test("Work folder can move to any folder in your home: browse, go up, pick", async ({ app, env }) => {
+  const other = path.join(env.home, "elsewhere", "mono");
+  fs.mkdirSync(other, { recursive: true });
+  fs.writeFileSync(path.join(env.home, "elsewhere", "AGENTS.md"), "# rules\n");
+  await open(app, env);
+  const { panel } = app;
+  await panel.locator('[data-act="account-menu"]').click();
+  await panel.locator('[data-act="root"]').click();
+  await panel.locator('[data-act="root-browse"]').click();
+  await expect(panel.locator("[data-browse-dir]")).toContainText("shop");
+  await panel.locator('[data-act="browse-up"]').click();
+  await panel.locator('[data-act="browse-up"]').click();
+  await expect(panel.locator('[data-act="browse-up"]')).toHaveCount(0);
+  await expect(panel.locator('[data-act="browse-use"]')).toBeDisabled();
+  await panel.locator('[data-browse="elsewhere"]').click();
+  await expect(panel.locator('[data-browse="mono"]')).toBeVisible();
+  await panel.locator('[data-act="browse-use"]').click();
+  await panel.locator("textarea").fill("from elsewhere");
+  await panel.locator("textarea").press("Enter");
+  await expect(panel.locator('[data-kind="done"]')).toBeVisible();
+  const prompt = env.ocReqs().find((r) => r.path.endsWith("/prompt_async"));
+  expect(prompt.query.directory).toBe(path.join(env.home, "elsewhere"));
+  await panel.locator('[data-act="account-menu"]').click();
+  await expect(panel.locator('[data-act="rules"]')).toContainText("AGENTS.md");
+});
