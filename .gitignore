@@ -9,3 +9,4 @@ native/server.pid
 # committed copy leaked native/key.pem, a private key.
 store/ecosphere-assistant-cws.zip
 helper-install.sh
+test-results/
