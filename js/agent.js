@@ -189,14 +189,14 @@ function paintStrip() {
   const wait = A.tl && A.tl.waitingForPermission;
   const dir = S.active ? shortDir(workDir()) : "";
   let title = t("agent.ready", "Agent ready");
-  let sub = `${agentKind()} · ${dir}${yoloOn() ? " · yolo" : ""}`;
+  let sub = `${dir}${yoloOn() ? " · yolo" : ""}`;
   let chip = h("span", { class: "chip c-mut", text: "idle" });
   if (wait) ((title = t("agent.waiting", "Agent is waiting for your permission")), (sub = `${A.tl.stepCount} ${t("agent.steps", "steps")} · ${dir}`), (chip = h("span", { class: "chip c-w", text: t("status.perm", "permission needed") })));
   else if (busy) ((title = t("agent.working", "Agent is working · {n} steps", { n: A.tl.stepCount })), (chip = h("span", { class: "chip c-br", text: t("status.working", "working") })));
   const starting = A.restarting || (A.connecting && !S.oc);
   if (starting) ((title = A.restarting && !A.switching ? t("agent.restarting", "Restarting {name}…", { name: agentLabel() }) : t("agent.starting", "Starting {name}…", { name: agentLabel() })), (chip = h("span", { class: "chip c-br", text: t("status.starting", "starting") })));
   else if (S.ocError) ((title = t("agent.down", "{name} is not running", { name: agentLabel() })), (chip = h("span", { class: "chip c-bad", text: "down" })));
-  clear(s, h("div", { class: "grow" }, h("b", { text: title }), h("div", { class: "sub", text: sub })), chip, h("div", { class: "progress" + ((busy && !wait) || starting ? " ind" : ""), style: wait ? { width: "50%" } : {} }));
+  clear(s, h("div", { class: "grow" }, h("b", { text: title }), h("div", { class: "sub", text: sub })), agentSwitch(busy), chip, h("div", { class: "progress" + ((busy && !wait) || starting ? " ind" : ""), style: wait ? { width: "50%" } : {} }));
 }
 
 const tilde = (p) => p.replace(/^\/(Users|home)\/[^/]+/, "~");
@@ -595,12 +595,13 @@ function paintChips() {
   );
 }
 
-/// OpenCode | Claude Code, switchable any time the agent is not working (the chosen one starts in its own last session).
+/// OpenCode | Claude Code logos in the status strip, switchable any time the agent is not working (the chosen one starts in
+/// its own last session). The active one shows its name too.
 function agentSwitch(busy) {
   const cur = agentKind();
   const lock = busy || A.restarting;
   const opt = (kind, label, missing) =>
-    h("button", { type: "button", "data-agent": kind, "aria-pressed": String(cur === kind), disabled: lock || (missing && cur !== kind), title: lock ? t("agentSw.busy", "Stop the agent first") : missing ? t("agentSw.missing", "{name} is not installed on this machine", { name: label }) : t("agentSw.use", "Use {name}", { name: label }), onclick: () => cur !== kind && switchAgent(kind) }, h("img", { src: `icons/agents/${kind}.svg`, alt: "", width: 14, height: 14 }), label);
+    h("button", { type: "button", "data-agent": kind, "aria-pressed": String(cur === kind), disabled: lock || (missing && cur !== kind), title: lock ? t("agentSw.busy", "Stop the agent first") : missing ? t("agentSw.missing", "{name} is not installed on this machine", { name: label }) : t("agentSw.use", "Use {name}", { name: label }), onclick: () => cur !== kind && switchAgent(kind), "aria-label": label }, h("img", { src: `icons/agents/${kind}.svg`, alt: "", width: 14, height: 14 }), cur === kind && h("span", { text: label }));
   return h("div", { class: "seg agentseg", role: "group", "aria-label": t("agentSw.label", "Coding agent") }, opt("opencode", "OpenCode", !(S.helper && S.helper.opencode)), opt("claude", "Claude Code", !(S.helper && S.helper.claude)));
 }
 
@@ -608,7 +609,7 @@ function paintActions() {
   const a = A.ref.actions;
   if (!a) return;
   const busy = A.tl && A.tl.busy;
-  clear(a, agentSwitch(busy), h("span", { class: "grow" }), busy && h("button", { class: "btn g", "data-act": "stop", onclick: stop, text: t("agent.stop", "Stop") }), h("button", { class: "btn br", "data-act": "send", disabled: A.sending, onclick: send, text: t("agent.send", "Send") + " ↵" }));
+  clear(a, h("span", { class: "grow" }), busy && h("button", { class: "btn g", "data-act": "stop", onclick: stop, text: t("agent.stop", "Stop") }), h("button", { class: "btn br", "data-act": "send", disabled: A.sending, onclick: send, text: t("agent.send", "Send") + " ↵" }));
 }
 
 function onInput() {
