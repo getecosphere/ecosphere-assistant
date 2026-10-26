@@ -68,15 +68,17 @@ const promoSmall = (ctx) =>
   render(ctx, "promo-small", 440, 280, `
   <div style="position:absolute;left:34px;top:46px">${mark(96)}</div>
   <div style="position:absolute;left:150px;top:62px;font-size:31px;font-weight:800;letter-spacing:-.04em;line-height:1.02">Ecosphere<br>Assistant</div>
-  <div style="position:absolute;left:34px;top:170px;width:372px;font-size:17px;line-height:1.4;color:#3b3545">A coding agent that sees the page you are on.</div>
+  <div style="position:absolute;left:34px;top:160px;width:372px;font-size:17px;line-height:1.4;color:#3b3545">A coding agent that sees the page you are on.</div>
+  <div style="position:absolute;left:34px;top:206px">${worksWith(18, 13)}</div>
   <div style="position:absolute;left:34px;bottom:20px;font-size:12px;color:#665f6e">getecosphere.com</div>`);
 
 const promoMarquee = (ctx, panelShot) =>
   render(ctx, "promo-marquee", 1400, 560, `
-  <div style="position:absolute;left:80px;top:90px">${mark(120)}</div>
-  <div style="position:absolute;left:80px;top:236px;width:700px">
+  <div style="position:absolute;left:80px;top:72px">${mark(120)}</div>
+  <div style="position:absolute;left:80px;top:214px;width:700px">
     <div style="font-size:64px;font-weight:800;letter-spacing:-.045em;line-height:1">Ecosphere Assistant</div>
-    <div style="font-size:26px;line-height:1.38;color:#3b3545;margin-top:20px">Pick an element on your page, say what to change, and a local coding agent does it. You approve every step.</div></div>
+    <div style="font-size:26px;line-height:1.38;color:#3b3545;margin-top:20px">Pick an element on your page, say what to change, and a local coding agent does it. You approve every step.</div>
+    <div style="margin-top:26px">${worksWith(28, 19)}</div></div>
   <div style="position:absolute;right:90px;top:56px;width:400px;height:560px;background:#fff;border-radius:16px 16px 0 0;box-shadow:0 24px 60px rgba(23,20,29,.25);overflow:hidden">${img(panelShot, 400)}</div>
   <div style="position:absolute;left:80px;bottom:34px;font-size:15px;color:#665f6e">getecosphere.com · runs on your machine</div>`);
 
