@@ -142,6 +142,13 @@ async function guessFile(url) {
   }
 }
 
+/// Pick (or pick again) without the shortcut; the shortcut stays in the tooltip.
+function pickBtn() {
+  const key = /Mac/.test(navigator.userAgent) ? "⌘⇧E" : "Ctrl⇧E";
+  const label = A.picking ? t("ctx.picking", "Click an element… · Esc cancels") : A.picked ? t("ctx.repick", "↖ Pick another") : t("ctx.pick", "↖ Pick element");
+  return h("button", { type: "button", class: "btn g sm pickbtn", "data-act": "pick-ctx", "aria-pressed": String(Boolean(A.picking)), title: t("ctx.pickT", "Pick an element on the page ({key})", { key }), onclick: togglePick, text: label });
+}
+
 function paintCtx() {
   // The context card lives at the top of the stream (collapsible), like the design.
   const host = A.ref.ctxHost;
@@ -161,7 +168,7 @@ function paintCtx() {
     "div",
     { class: "ctxbody" },
     h("div", { class: "thumb", style: A.picked ? { backgroundImage: `url(${A.picked.crop})` } : {} }),
-    h("div", { class: "ctxl" }, h("span", { text: hostPart }), A.guess && h("span", { class: "s", text: `→ ${A.guess}` }), A.picked ? h("span", { class: "el", "data-el": "", text: `${t("ctx.element", "element")}: ${A.picked.selector.split(" > ").pop()} · ${Math.round(A.picked.rect.w)}×${Math.round(A.picked.rect.h)}${A.picked.loc ? " · " + A.picked.loc : ""}` }) : h("span", { class: "s", text: t("ctx.noEl", "no element picked · {key}", { key: /Mac/.test(navigator.userAgent) ? "⌘⇧E" : "Ctrl⇧E" }) })),
+    h("div", { class: "ctxl" }, h("span", { text: hostPart }), A.guess && h("span", { class: "s", text: `→ ${A.guess}` }), A.picked ? h("span", { class: "el", "data-el": "", text: `${t("ctx.element", "element")}: ${A.picked.selector.split(" > ").pop()} · ${Math.round(A.picked.rect.w)}×${Math.round(A.picked.rect.h)}${A.picked.loc ? " · " + A.picked.loc : ""}` }) : h("span", { class: "s", text: t("ctx.noEl0", "no element picked") }), pickBtn()),
   );
   clear(
     host,
