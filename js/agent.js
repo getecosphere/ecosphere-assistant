@@ -196,7 +196,8 @@ function paintStrip() {
   const starting = A.restarting || (A.connecting && !S.oc);
   if (starting) ((title = A.restarting && !A.switching ? t("agent.restarting", "Restarting {name}…", { name: agentLabel() }) : t("agent.starting", "Starting {name}…", { name: agentLabel() })), (chip = h("span", { class: "chip c-br", text: t("status.starting", "starting") })));
   else if (S.ocError) ((title = t("agent.down", "{name} is not running", { name: agentLabel() })), (chip = h("span", { class: "chip c-bad", text: "down" })));
-  clear(s, h("div", { class: "grow" }, h("b", { text: title }), h("div", { class: "sub", text: sub })), agentSwitch(busy), chip, h("div", { class: "progress" + ((busy && !wait) || starting ? " ind" : ""), style: wait ? { width: "50%" } : {} }));
+  const folder = h("button", { type: "button", class: "sub folderbtn", "data-act": "work-folder", title: t("menu.root.t", "The folder the agent runs in: its sessions and AGENTS.md come from here"), onclick: () => ((S.rootAsk = true), notify()) }, svg(ICON.folder, 12), h("span", { text: sub }));
+  clear(s, h("div", { class: "grow" }, h("b", { text: title }), folder), agentSwitch(busy), chip, h("div", { class: "progress" + ((busy && !wait) || starting ? " ind" : ""), style: wait ? { width: "50%" } : {} }));
 }
 
 const tilde = (p) => p.replace(/^\/(Users|home)\/[^/]+/, "~");
@@ -407,9 +408,6 @@ function paintStream() {
   if (A.restarting && A.switching) kids.push(h("div", { class: "mt", "data-oc": "switching" }, t("agent.switchingD", "Switching to {name}. Your sessions with the other agent stay where they are.", { name: agentLabel() })));
   else if (A.restarting) kids.push(h("div", { class: "mt", "data-oc": "restarting" }, t("agent.restartingD", "Restarting {name}: stopping the old server and starting a new one. This can take up to a minute.", { name: agentLabel() })));
   else if (S.ocError) kids.push(h("div", { class: "err", "data-err": "opencode" }, t("agent.downMsg", "Could not reach the local {name} server: {e}", { e: S.ocError, name: agentLabel() }), A.restartedAt && h("div", { class: "sub", "data-oc": "retried" }, t("agent.retried", "Restart tried at {time}, still not running.", { time: A.restartedAt })), h("button", { class: "btn g", "data-act": "restart-oc", onclick: restartOc, text: t("agent.restart", "Restart {name}", { name: agentLabel() }) })));
-  if (!tl || tl.items().length === 0) {
-    if (S.active) kids.push(h("div", { class: "mt", text: t("agent.connected", "Working from {dir} · project {p}.", { p: S.active.project, dir: shortDir(workDir()) }) }));
-  }
   if (tl) {
     for (const it of tl.items()) kids.push(renderItem(it));
     kids.push(shareCard());

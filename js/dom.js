@@ -53,6 +53,7 @@ export const ICON = {
   check: "M5 12l5 5L20 7",
   x: "M6 6l12 12|M18 6L6 18",
   ext: "M7 17L17 7|M8 7h9v9",
+  folder: "M3 7a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z",
 };
 
 export const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
