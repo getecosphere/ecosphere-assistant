@@ -75,7 +75,14 @@ function stepEl(s, i, cur) {
     link: [t("ob.link.t", "Connect to /project"), t("ob.link.d", "eco pm link — QA requests arrive in this panel and session summaries appear in /project.")],
   }[s.id];
   const body = i === cur || (s.id === "link" && s.optional === false && !s.done && cur === -1) ? stepBody(s.id) : null;
-  return h("div", { class: `step ${state}`, "data-step": s.id }, h("span", { class: "n", "aria-hidden": "true", text: s.done ? "✓" : String(i + 1) }), h("div", { class: "body" }, h("h2", { text: copy[0] }), h("p", { text: copy[1] }), body));
+  return h("div", { class: `step ${state}`, "data-step": s.id }, h("span", { class: "n", "aria-hidden": "true", text: s.done ? "✓" : String(i + 1) }), h("div", { class: "body" }, h("h2", { text: copy[0] }), h("p", { text: copy[1] }), s.id === "opencode" && agentLogos(), body));
+}
+
+/// The two agents with their logos and whether this machine has them.
+function agentLogos() {
+  const has = { opencode: Boolean(S.helper && S.helper.opencode), claude: Boolean(S.helper && S.helper.claude) };
+  const one = (kind, name) => h("span", { class: "agentlogo" + (has[kind] ? " on" : ""), "data-agent": kind }, h("img", { src: `icons/agents/${kind}.svg`, alt: "", width: 16, height: 16 }), h("b", { text: name }), h("span", { text: has[kind] ? t("ob.agentHas", "installed") : t("ob.agentNo", "not found") }));
+  return h("div", { class: "agentlogos" }, one("opencode", "OpenCode"), one("claude", "Claude Code"));
 }
 
 function stepBody(id) {

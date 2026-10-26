@@ -325,3 +325,7 @@ h3.mdh{font-size:15px}h4.mdh{font-size:14px}h5.mdh,h6.mdh,h7.mdh{font-size:13.5p
 .flow>i{align-self:center;font-style:normal;color:var(--subtle)}
 .in-nav{display:flex;align-items:center;gap:8px;padding:12px 20px 18px;flex:none;position:sticky;bottom:0;background:var(--bg)}
 .pickbtn{align-self:flex-start;margin-top:4px;height:24px;padding:0 9px;font-size:12px}.pickbtn[aria-pressed="true"]{border-color:var(--brand);color:var(--brand)}
+.agentlogos{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px}
+.agentlogo{display:inline-flex;align-items:center;gap:6px;height:28px;padding:0 10px 0 7px;border:1px solid var(--line);border-radius:8px;background:var(--surface);font-size:12px;color:var(--muted)}
+.agentlogo img{display:block;border-radius:3px}.agentlogo b{color:var(--ink);font-weight:600}.agentlogo span{font:11px var(--mono)}
+.agentlogo:not(.on) img{filter:grayscale(1);opacity:.6}.agentlogo.on span{color:var(--ok)}
