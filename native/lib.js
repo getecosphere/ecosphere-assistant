@@ -451,30 +451,66 @@ function ocStart(dir) {
   return starting.get(dir);
 }
 
+// A busy machine (a deploy compiling, load 10+) can take well over 30 s to boot OpenCode.
+const OC_START_MS = 120000;
+
+async function waitHealthy(port, password, ms) {
+  const end = Date.now() + ms;
+  while (Date.now() < end) {
+    if (await health(port, password, 3000)) return true;
+    await sleep(500);
+  }
+  return false;
+}
+
+async function serverAlive(cur) {
+  if (cur.label) return (await launchdPid(cur.label)) > 0;
+  try {
+    return cur.pid > 1 && process.kill(cur.pid, 0);
+  } catch {
+    return false;
+  }
+}
+
+/// launchd jobs of ours that servers.json no longer knows (left by an older helper): remove them.
+async function sweepOrphans(servers) {
+  if (process.platform !== "darwin") return;
+  const known = new Set(Object.values(servers).map((v) => v.label));
+  const r = await runCmd("launchctl", ["list"], { timeout: 5000 });
+  for (const label of r.stdout.match(/com\.ecosphere\.assistant\.opencode\.\d+/g) || []) {
+    if (known.has(label)) continue;
+    await runCmd("launchctl", ["remove", label], { timeout: 5000 });
+    fs.rmSync(path.join(HOME_DIR, `run-${label.split(".").pop()}.sh`), { force: true });
+  }
+}
+
 async function ocStartOnce(dir) {
   const servers = readJson(SERVERS_PATH, {});
+  await sweepOrphans(servers);
   const cur = servers[dir];
-  if (cur && (await health(cur.port, cur.password))) return { port: cur.port, password: cur.password, reused: true };
+  if (cur) {
+    // still booting: wait for it instead of starting a second server next to it
+    if ((await serverAlive(cur)) && (await waitHealthy(cur.port, cur.password, OC_START_MS))) return { port: cur.port, password: cur.password, reused: true };
+    await ocStop(dir);
+    delete servers[dir];
+  }
   const bin = await resolveBin("opencode");
   if (!bin) throw new Reject("opencode is not installed");
   const port = await freePort();
   const password = crypto.randomBytes(18).toString("base64url");
   fs.mkdirSync(HOME_DIR, { recursive: true });
-  const log = fs.openSync(path.join(HOME_DIR, "opencode-server.log"), "a");
   const started = await spawnServer(bin, dir, port, password);
   servers[dir] = { pid: started.pid, port, password, label: started.label, script: started.script };
   writeJson(SERVERS_PATH, servers, 0o600);
-  for (let i = 0; i < 60; i++) {
-    await sleep(500);
-    if (await health(port, password, 1200)) {
-      if (started.label) {
-        servers[dir].pid = await launchdPid(started.label);
-        writeJson(SERVERS_PATH, servers, 0o600);
-      }
-      return { port, password, reused: false };
+  if (await waitHealthy(port, password, OC_START_MS)) {
+    if (started.label) {
+      servers[dir].pid = await launchdPid(started.label);
+      writeJson(SERVERS_PATH, servers, 0o600);
     }
+    return { port, password, reused: false };
   }
-  throw new Reject("OpenCode did not become healthy");
+  // left running: if it comes up later, the next start reuses it
+  throw new Reject(`OpenCode did not start within ${OC_START_MS / 60000} minutes (log: ~/.ecosphere-assistant/opencode-server.log)`);
 }
 
 async function ocStop(dir) {
