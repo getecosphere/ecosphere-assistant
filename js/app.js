@@ -52,7 +52,23 @@ export async function refreshWho() {
     S.who = null;
   }
   notify();
+  if (S.who && S.who.signedIn) loadPicture(S.who);
   return S.who;
+}
+
+/// The Google photo for the header avatar, from the getecosphere.com profile (the browser's HttpOnly session cookie goes
+/// with the request; the panel never sees it). Only when that profile is the same account as the eco CLI.
+async function loadPicture(who) {
+  try {
+    const res = await fetch("https://getecosphere.com/api/auth/me", { credentials: "include" });
+    if (!res.ok) return;
+    const me = await res.json();
+    const u = me.user || me;
+    if (String(u.email || "").toLowerCase() !== String(who.email || "").toLowerCase()) return;
+    if (typeof u.picture === "string" && /^https:\/\//.test(u.picture) && S.who === who) ((who.picture = u.picture), notify());
+  } catch {
+    /* offline or signed out on the web: initials stay */
+  }
 }
 
 export async function refreshEstates() {

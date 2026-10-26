@@ -188,7 +188,7 @@ function paintHeader(onboarding) {
       h("span", { class: "grow" }),
       !onboarding && h("span", { class: `status ${cls}`, "data-status": "", text: st }),
       !onboarding && h("button", { class: "ib", "data-act": "pick", "aria-pressed": String(a.picking), "aria-label": t("hdr.pick", "Pick an element on the page"), title: `${t("hdr.pick", "Pick an element on the page")} (${/Mac/.test(navigator.userAgent) ? "⌘⇧E" : "Ctrl+Shift+E"})`, onclick: () => agent.togglePick() }, svg(ICON.pick, 16)),
-      h("button", { class: "av", "data-act": "account-menu", "aria-haspopup": "menu", "aria-expanded": String(menu === "account"), "aria-label": t("hdr.account", "Account menu"), onclick: () => toggleMenu("account"), text: S.who && S.who.signedIn ? initials(S.who.email) : "?" }),
+      h("button", { class: "av", "data-act": "account-menu", "aria-haspopup": "menu", "aria-expanded": String(menu === "account"), "aria-label": t("hdr.account", "Account menu"), onclick: () => toggleMenu("account") }, S.who && S.who.picture ? h("img", { src: S.who.picture, alt: "", referrerpolicy: "no-referrer", width: 28, height: 28, onerror: () => ((S.who.picture = ""), paintHeader()) }) : S.who && S.who.signedIn ? initials(S.who.email) : "?"),
     ),
     menu === "account" && accountMenu(),
     menu === "project" && projectMenu(),
