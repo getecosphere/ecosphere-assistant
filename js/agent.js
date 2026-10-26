@@ -189,22 +189,26 @@ async function allowSite() {
 
 // ── stream ────────────────────────────────────────────────────────────────
 
+/// The agent's state as one short line with a tone (ok / br / w / bad / mut), shown as a dot + text next to Send.
+function agentStatus() {
+  const busy = A.tl && A.tl.busy;
+  const wait = A.tl && A.tl.waitingForPermission;
+  const starting = A.restarting || (A.connecting && !S.oc);
+  if (starting) return { tone: "br", text: A.restarting && !A.switching ? t("agent.restarting", "Restarting {name}…", { name: agentLabel() }) : t("agent.starting", "Starting {name}…", { name: agentLabel() }), starting };
+  if (S.ocError) return { tone: "bad", text: t("agent.down", "{name} is not running", { name: agentLabel() }) };
+  if (wait) return { tone: "w", text: t("status.perm", "permission needed"), wait };
+  if (busy) return { tone: "br", text: t("agent.workingN", "working · {n} steps", { n: A.tl.stepCount }), busy };
+  return { tone: "ok", text: t("status.ready", "ready") };
+}
+
 function paintStrip() {
   const s = A.ref.strip;
   if (!s) return;
-  const busy = A.tl && A.tl.busy;
-  const wait = A.tl && A.tl.waitingForPermission;
-  const dir = S.active ? shortDir(workDir()) : "";
-  let title = t("agent.ready", "Agent ready");
-  let sub = `${dir}${yoloOn() ? " · yolo" : ""}`;
-  let chip = h("span", { class: "chip c-mut", text: "idle" });
-  if (wait) ((title = t("agent.waiting", "Agent is waiting for your permission")), (sub = `${A.tl.stepCount} ${t("agent.steps", "steps")} · ${dir}`), (chip = h("span", { class: "chip c-w", text: t("status.perm", "permission needed") })));
-  else if (busy) ((title = t("agent.working", "Agent is working · {n} steps", { n: A.tl.stepCount })), (chip = h("span", { class: "chip c-br", text: t("status.working", "working") })));
-  const starting = A.restarting || (A.connecting && !S.oc);
-  if (starting) ((title = A.restarting && !A.switching ? t("agent.restarting", "Restarting {name}…", { name: agentLabel() }) : t("agent.starting", "Starting {name}…", { name: agentLabel() })), (chip = h("span", { class: "chip c-br", text: t("status.starting", "starting") })));
-  else if (S.ocError) ((title = t("agent.down", "{name} is not running", { name: agentLabel() })), (chip = h("span", { class: "chip c-bad", text: "down" })));
+  const st = agentStatus();
+  const sub = `${S.active ? shortDir(workDir()) : ""}${yoloOn() ? " · yolo" : ""}`;
   const folder = h("button", { type: "button", class: "sub folderbtn", "data-act": "work-folder", title: t("menu.root.t", "The folder the agent runs in: its sessions and AGENTS.md come from here"), onclick: () => ((S.rootAsk = true), notify()) }, svg(ICON.folder, 12), h("span", { text: sub }));
-  clear(s, h("div", { class: "grow" }, h("b", { text: title }), folder), agentSwitch(busy), chip, h("div", { class: "progress" + ((busy && !wait) || starting ? " ind" : ""), style: wait ? { width: "50%" } : {} }));
+  clear(s, h("div", { class: "grow" }, folder), agentSwitch(A.tl && A.tl.busy), h("div", { class: "progress" + (st.busy || st.starting ? " ind" : ""), style: st.wait ? { width: "50%" } : {} }));
+  paintActions(); // the status dot lives next to Send
 }
 
 const tilde = (p) => p.replace(/^\/(Users|home)\/[^/]+/, "~");
@@ -614,7 +618,8 @@ function paintActions() {
   const a = A.ref.actions;
   if (!a) return;
   const busy = A.tl && A.tl.busy;
-  clear(a, h("span", { class: "grow" }), busy && h("button", { class: "btn g", "data-act": "stop", onclick: stop, text: t("agent.stop", "Stop") }), h("button", { class: "btn br", "data-act": "send", disabled: A.sending, onclick: send, text: t("agent.send", "Send") + " ↵" }));
+  const st = agentStatus();
+  clear(a, h("span", { class: `astat t-${st.tone}`, "data-status": st.tone, role: "status", title: st.text }, h("i", { "aria-hidden": "true" }), h("span", { text: st.text })), h("span", { class: "grow" }), busy && h("button", { class: "btn g", "data-act": "stop", onclick: stop, text: t("agent.stop", "Stop") }), h("button", { class: "btn br", "data-act": "send", disabled: A.sending, onclick: send, text: t("agent.send", "Send") + " ↵" }));
 }
 
 function onInput() {

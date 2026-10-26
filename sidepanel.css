@@ -329,3 +329,9 @@ h3.mdh{font-size:15px}h4.mdh{font-size:14px}h5.mdh,h6.mdh,h7.mdh{font-size:13.5p
 .agentlogo{display:inline-flex;align-items:center;gap:6px;height:28px;padding:0 10px 0 7px;border:1px solid var(--line);border-radius:8px;background:var(--surface);font-size:12px;color:var(--muted)}
 .agentlogo img{display:block;border-radius:3px}.agentlogo b{color:var(--ink);font-weight:600}.agentlogo span{font:11px var(--mono)}
 .agentlogo:not(.on) img{filter:grayscale(1);opacity:.6}.agentlogo.on span{color:var(--ok)}
+.astat{display:inline-flex;align-items:center;gap:6px;min-width:0;font:11.5px var(--mono);color:var(--muted)}
+.astat span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.astat i{flex:none;width:8px;height:8px;border-radius:50%;background:var(--muted)}
+.astat.t-ok i{background:var(--ok)}.astat.t-br i{background:var(--brand);animation:astatp 1.2s ease-in-out infinite}.astat.t-w i{background:var(--warn)}.astat.t-bad i{background:var(--bad)}.astat.t-bad{color:var(--bad)}
+@keyframes astatp{50%{opacity:.35}}
+@media (prefers-reduced-motion:reduce){.astat.t-br i{animation:none}}
