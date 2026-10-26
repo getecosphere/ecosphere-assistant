@@ -194,7 +194,7 @@ function paintStrip() {
   if (wait) ((title = t("agent.waiting", "Agent is waiting for your permission")), (sub = `${A.tl.stepCount} ${t("agent.steps", "steps")} · ${dir}`), (chip = h("span", { class: "chip c-w", text: t("status.perm", "permission needed") })));
   else if (busy) ((title = t("agent.working", "Agent is working · {n} steps", { n: A.tl.stepCount })), (chip = h("span", { class: "chip c-br", text: t("status.working", "working") })));
   const starting = A.restarting || (A.connecting && !S.oc);
-  if (starting) ((title = A.restarting ? t("agent.restarting", "Restarting {name}…", { name: agentLabel() }) : t("agent.starting", "Starting {name}…", { name: agentLabel() })), (chip = h("span", { class: "chip c-br", text: t("status.starting", "starting") })));
+  if (starting) ((title = A.restarting && !A.switching ? t("agent.restarting", "Restarting {name}…", { name: agentLabel() }) : t("agent.starting", "Starting {name}…", { name: agentLabel() })), (chip = h("span", { class: "chip c-br", text: t("status.starting", "starting") })));
   else if (S.ocError) ((title = t("agent.down", "{name} is not running", { name: agentLabel() })), (chip = h("span", { class: "chip c-bad", text: "down" })));
   clear(s, h("div", { class: "grow" }, h("b", { text: title }), h("div", { class: "sub", text: sub })), chip, h("div", { class: "progress" + ((busy && !wait) || starting ? " ind" : ""), style: wait ? { width: "50%" } : {} }));
 }
@@ -404,7 +404,8 @@ function paintStream() {
   A.ref.ctxHost = h("div");
   kids.push(A.ref.ctxHost);
   if (!A.tl || A.tl.items().length === 0) kids.push(suggestions());
-  if (A.restarting) kids.push(h("div", { class: "mt", "data-oc": "restarting" }, t("agent.restartingD", "Restarting {name}: stopping the old server and starting a new one. This can take up to a minute.", { name: agentLabel() })));
+  if (A.restarting && A.switching) kids.push(h("div", { class: "mt", "data-oc": "switching" }, t("agent.switchingD", "Switching to {name}. Your sessions with the other agent stay where they are.", { name: agentLabel() })));
+  else if (A.restarting) kids.push(h("div", { class: "mt", "data-oc": "restarting" }, t("agent.restartingD", "Restarting {name}: stopping the old server and starting a new one. This can take up to a minute.", { name: agentLabel() })));
   else if (S.ocError) kids.push(h("div", { class: "err", "data-err": "opencode" }, t("agent.downMsg", "Could not reach the local {name} server: {e}", { e: S.ocError, name: agentLabel() }), A.restartedAt && h("div", { class: "sub", "data-oc": "retried" }, t("agent.retried", "Restart tried at {time}, still not running.", { time: A.restartedAt })), h("button", { class: "btn g", "data-act": "restart-oc", onclick: restartOc, text: t("agent.restart", "Restart {name}", { name: agentLabel() }) })));
   if (!tl || tl.items().length === 0) {
     if (S.active) kids.push(h("div", { class: "mt", text: t("agent.connected", "Working from {dir} · project {p}.", { p: S.active.project, dir: shortDir(workDir()) }) }));
@@ -594,11 +595,20 @@ function paintChips() {
   );
 }
 
+/// OpenCode | Claude Code, switchable any time the agent is not working (the chosen one starts in its own last session).
+function agentSwitch(busy) {
+  const cur = agentKind();
+  const lock = busy || A.restarting;
+  const opt = (kind, label, missing) =>
+    h("button", { type: "button", "data-agent": kind, "aria-pressed": String(cur === kind), disabled: lock || (missing && cur !== kind), title: lock ? t("agentSw.busy", "Stop the agent first") : missing ? t("agentSw.missing", "{name} is not installed on this machine", { name: label }) : t("agentSw.use", "Use {name}", { name: label }), onclick: () => cur !== kind && switchAgent(kind), text: label });
+  return h("div", { class: "seg agentseg", role: "group", "aria-label": t("agentSw.label", "Coding agent") }, opt("opencode", "OpenCode", !(S.helper && S.helper.opencode)), opt("claude", "Claude Code", !(S.helper && S.helper.claude)));
+}
+
 function paintActions() {
   const a = A.ref.actions;
   if (!a) return;
   const busy = A.tl && A.tl.busy;
-  clear(a, h("span", { class: "mono subtle", style: { fontSize: "11.5px" }, text: agentKind() === "claude" ? "claude code" : `opencode · ${pref("agentName", "build")}` }), h("span", { class: "grow" }), busy && h("button", { class: "btn g", "data-act": "stop", onclick: stop, text: t("agent.stop", "Stop") }), h("button", { class: "btn br", "data-act": "send", disabled: A.sending, onclick: send, text: t("agent.send", "Send") + " ↵" }));
+  clear(a, agentSwitch(busy), h("span", { class: "grow" }), busy && h("button", { class: "btn g", "data-act": "stop", onclick: stop, text: t("agent.stop", "Stop") }), h("button", { class: "btn br", "data-act": "send", disabled: A.sending, onclick: send, text: t("agent.send", "Send") + " ↵" }));
 }
 
 function onInput() {
@@ -1093,8 +1103,10 @@ const sessKey = (dir = workDir()) => (agentKind() === "claude" ? `session:claude
 export async function switchAgent(kind) {
   if (kind === agentKind()) return;
   setPref("agent", kind);
-  ((A.tl = null), (A.sessionId = ""), (A.meta = null), (A.commands = null), (A.mode = "chat"));
+  ((A.tl = null), (A.sessionId = ""), (A.meta = null), (A.commands = null), (A.mode = "chat"), (A.switching = true));
   await restartOc();
+  A.switching = false;
+  bump();
 }
 
 async function restartOc() {
