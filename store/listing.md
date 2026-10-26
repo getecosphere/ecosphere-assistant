@@ -30,7 +30,8 @@ Everything the dashboard asks for. Copy is English; the six languages follow whe
 > (opencode.ai, open source) or Claude Code (claude.com/claude-code), your choice in the menu. The extension is its interface
 > in Chrome: without one of them the chat and the agent do not work. Setup installs OpenCode for you if you have neither. The
 > AI model and its account, subscription or API key are the ones you set up in that agent; model costs are between you and
-> that provider. Ecosphere Assistant is not made by or affiliated with the OpenCode project or Anthropic.
+> that provider. Ecosphere Assistant is not made by or affiliated with the OpenCode project or Anthropic; their names and
+> logos are shown only to tell you which agent is in use and belong to their owners.
 >
 > **An agent that sees the page you are on.** Pick an element, describe the change, and the agent finds it in your source and
 > edits it. Reload the tab to see it. You choose what it may see: the page address, the element, a screenshot, the console errors.

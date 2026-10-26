@@ -600,7 +600,7 @@ function agentSwitch(busy) {
   const cur = agentKind();
   const lock = busy || A.restarting;
   const opt = (kind, label, missing) =>
-    h("button", { type: "button", "data-agent": kind, "aria-pressed": String(cur === kind), disabled: lock || (missing && cur !== kind), title: lock ? t("agentSw.busy", "Stop the agent first") : missing ? t("agentSw.missing", "{name} is not installed on this machine", { name: label }) : t("agentSw.use", "Use {name}", { name: label }), onclick: () => cur !== kind && switchAgent(kind), text: label });
+    h("button", { type: "button", "data-agent": kind, "aria-pressed": String(cur === kind), disabled: lock || (missing && cur !== kind), title: lock ? t("agentSw.busy", "Stop the agent first") : missing ? t("agentSw.missing", "{name} is not installed on this machine", { name: label }) : t("agentSw.use", "Use {name}", { name: label }), onclick: () => cur !== kind && switchAgent(kind) }, h("img", { src: `icons/agents/${kind}.svg`, alt: "", width: 14, height: 14 }), label);
   return h("div", { class: "seg agentseg", role: "group", "aria-label": t("agentSw.label", "Coding agent") }, opt("opencode", "OpenCode", !(S.helper && S.helper.opencode)), opt("claude", "Claude Code", !(S.helper && S.helper.claude)));
 }
 
