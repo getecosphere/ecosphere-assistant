@@ -24,6 +24,11 @@ function mark(px) {
 
 const BASE = `@font-face{font-family:Manrope;src:url(data:font/woff2;base64,${font});font-weight:400 800}
 *{box-sizing:border-box;margin:0}body{font-family:Manrope,system-ui,sans-serif;color:#17141d;position:relative;overflow:hidden;background:linear-gradient(135deg,#f9f8fc,#e9e3ff)}`;
+const agentLogo = (kind, px) => `<img src="data:image/svg+xml;base64,${fs.readFileSync(path.join(ROOT, "icons", "agents", `${kind}.svg`)).toString("base64")}" style="width:${px}px;height:${px}px;display:block;border-radius:${px * 0.18}px">`;
+const worksWith = (px, fs_) => `<div style="display:flex;align-items:center;gap:${px * 0.5}px;font-size:${fs_}px;font-weight:600;color:#3b3545">
+  <span style="color:#665f6e;font-weight:500">Works with</span>
+  <span style="display:flex;align-items:center;gap:${px * 0.3}px">${agentLogo("opencode", px)}OpenCode</span>
+  <span style="display:flex;align-items:center;gap:${px * 0.3}px">${agentLogo("claude", px)}Claude Code</span></div>`;
 const img = (buf, w) => `<img src="data:image/jpeg;base64,${buf.toString("base64")}" style="width:${w}px;display:block">`;
 
 async function render(ctx, name, w, h, html) {
@@ -54,7 +59,8 @@ const brandSlide = (ctx) =>
   <div style="position:absolute;left:120px;top:150px">${mark(250)}</div>
   <div style="position:absolute;left:440px;top:196px;width:720px">
     <div style="font-size:78px;font-weight:800;letter-spacing:-.045em;line-height:1">Ecosphere<br>Assistant</div>
-    <div style="font-size:28px;line-height:1.35;color:#3b3545;margin-top:26px;max-width:640px">A coding agent that sees the page you are on, and your project, in Chrome’s side panel.</div></div>
+    <div style="font-size:28px;line-height:1.35;color:#3b3545;margin-top:26px;max-width:640px">A coding agent that sees the page you are on, and your project, in Chrome’s side panel.</div>
+    <div style="margin-top:34px">${worksWith(34, 22)}</div></div>
   <div style="position:absolute;left:120px;bottom:60px;font-size:20px;font-weight:700;color:#7048F5">getecosphere.com</div>
   <div style="position:absolute;right:120px;bottom:60px;font-size:16px;color:#665f6e">Runs on your machine · Your code stays local</div>`);
 
