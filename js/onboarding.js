@@ -19,7 +19,7 @@ export function steps() {
   return [
     { id: "login", done: confirmed },
     { id: "helper", done: Boolean(S.helper) },
-    { id: "opencode", done: Boolean(S.helper && S.helper.opencode) },
+    { id: "opencode", done: Boolean(S.helper && (S.helper.opencode || (S.helper.claude && pref("agent", "opencode") === "claude"))) },
     { id: "project", done: S.estates.length > 0 },
     { id: "link", done: Boolean(S.pm && S.pm.linked), optional: !flags().pm },
   ];
@@ -69,8 +69,8 @@ function stepEl(s, i, cur) {
   const state = s.done ? "done" : i === cur ? "cur" : "";
   const copy = {
     login: [t("ob.login.t", "Sign in"), t("ob.login.d", "One account for the extension, the eco CLI and /project.")],
-    helper: [t("ob.helper.t", "Helper installed"), t("ob.helper.d", "A small program that runs opencode and eco for you, with a fixed list of actions.")],
-    opencode: [t("ob.oc.t", "OpenCode"), t("ob.oc.d", "The local coding agent. Installed for you if it is missing.")],
+    helper: [t("ob.helper.t", "Helper installed"), t("ob.helper.d", "A small program that runs your coding agent and eco for you, with a fixed list of actions.")],
+    opencode: [t("ob.oc.t", "Coding agent"), t("ob.oc.d", "OpenCode, installed for you if it is missing, or Claude Code if you already use it.")],
     project: [t("ob.project.t", "Pick a project"), t("ob.project.d", "A folder with an ecompose.yml on this machine. The one matching the active tab is marked.")],
     link: [t("ob.link.t", "Connect to /project"), t("ob.link.d", "eco pm link — QA requests arrive in this panel and session summaries appear in /project.")],
   }[s.id];
@@ -135,6 +135,7 @@ function opencode() {
     (ui.install.length > 0 || ui.installBusy) && h("pre", { class: "log", "data-log": "install" }, ui.install.slice(-12).join("\n")),
     ui.installErr && h("div", { class: "err" }, ui.installErr),
     h("button", { class: "btn br", "data-act": "install-oc", disabled: ui.installBusy, onclick: installOc, text: ui.installBusy ? t("ob.installing", "Installing…") : t("ob.install", "Install OpenCode") }),
+    S.helper && S.helper.claude && h("button", { class: "btn g", "data-act": "use-claude", disabled: ui.installBusy, onclick: () => (setPref("agent", "claude"), notify()), text: t("ob.useClaude", "Use Claude Code instead") }),
   );
 }
 

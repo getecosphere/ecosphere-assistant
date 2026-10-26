@@ -2,7 +2,7 @@
 import { h, clear, svg, ICON } from "./dom.js";
 import { t } from "./i18n.js";
 import { led, setRunning } from "./led.js";
-import { S, call, notify, subscribe, ensureOpenCode, flags, workDir, needsRoot, setRoot } from "./app.js";
+import { S, call, notify, subscribe, ensureOpenCode, flags, workDir, needsRoot, setRoot, agentKind, agentLabel } from "./app.js";
 import { pref, setPref } from "./prefs.js";
 import { Timeline, toolArg } from "./session.js";
 import * as page from "./page.js";
@@ -189,13 +189,13 @@ function paintStrip() {
   const wait = A.tl && A.tl.waitingForPermission;
   const dir = S.active ? shortDir(workDir()) : "";
   let title = t("agent.ready", "Agent ready");
-  let sub = `opencode · ${dir}${yoloOn() ? " · yolo" : ""}`;
+  let sub = `${agentKind()} · ${dir}${yoloOn() ? " · yolo" : ""}`;
   let chip = h("span", { class: "chip c-mut", text: "idle" });
   if (wait) ((title = t("agent.waiting", "Agent is waiting for your permission")), (sub = `${A.tl.stepCount} ${t("agent.steps", "steps")} · ${dir}`), (chip = h("span", { class: "chip c-w", text: t("status.perm", "permission needed") })));
   else if (busy) ((title = t("agent.working", "Agent is working · {n} steps", { n: A.tl.stepCount })), (chip = h("span", { class: "chip c-br", text: t("status.working", "working") })));
   const starting = A.restarting || (A.connecting && !S.oc);
-  if (starting) ((title = A.restarting ? t("agent.restarting", "Restarting OpenCode…") : t("agent.starting", "Starting OpenCode…")), (chip = h("span", { class: "chip c-br", text: t("status.starting", "starting") })));
-  else if (S.ocError) ((title = t("agent.down", "OpenCode is not running")), (chip = h("span", { class: "chip c-bad", text: "down" })));
+  if (starting) ((title = A.restarting ? t("agent.restarting", "Restarting {name}…", { name: agentLabel() }) : t("agent.starting", "Starting {name}…", { name: agentLabel() })), (chip = h("span", { class: "chip c-br", text: t("status.starting", "starting") })));
+  else if (S.ocError) ((title = t("agent.down", "{name} is not running", { name: agentLabel() })), (chip = h("span", { class: "chip c-bad", text: "down" })));
   clear(s, h("div", { class: "grow" }, h("b", { text: title }), h("div", { class: "sub", text: sub })), chip, h("div", { class: "progress" + ((busy && !wait) || starting ? " ind" : ""), style: wait ? { width: "50%" } : {} }));
 }
 
@@ -404,8 +404,8 @@ function paintStream() {
   A.ref.ctxHost = h("div");
   kids.push(A.ref.ctxHost);
   if (!A.tl || A.tl.items().length === 0) kids.push(suggestions());
-  if (A.restarting) kids.push(h("div", { class: "mt", "data-oc": "restarting" }, t("agent.restartingD", "Restarting OpenCode: stopping the old server and starting a new one. This can take up to a minute.")));
-  else if (S.ocError) kids.push(h("div", { class: "err", "data-err": "opencode" }, t("agent.downMsg", "Could not reach the local OpenCode server: {e}", { e: S.ocError }), A.restartedAt && h("div", { class: "sub", "data-oc": "retried" }, t("agent.retried", "Restart tried at {time}, still not running.", { time: A.restartedAt })), h("button", { class: "btn g", "data-act": "restart-oc", onclick: restartOc, text: t("agent.restart", "Restart OpenCode") })));
+  if (A.restarting) kids.push(h("div", { class: "mt", "data-oc": "restarting" }, t("agent.restartingD", "Restarting {name}: stopping the old server and starting a new one. This can take up to a minute.", { name: agentLabel() })));
+  else if (S.ocError) kids.push(h("div", { class: "err", "data-err": "opencode" }, t("agent.downMsg", "Could not reach the local {name} server: {e}", { e: S.ocError, name: agentLabel() }), A.restartedAt && h("div", { class: "sub", "data-oc": "retried" }, t("agent.retried", "Restart tried at {time}, still not running.", { time: A.restartedAt })), h("button", { class: "btn g", "data-act": "restart-oc", onclick: restartOc, text: t("agent.restart", "Restart {name}", { name: agentLabel() }) })));
   if (!tl || tl.items().length === 0) {
     if (S.active) kids.push(h("div", { class: "mt", text: t("agent.connected", "Working from {dir} · project {p}.", { p: S.active.project, dir: shortDir(workDir()) }) }));
   }
@@ -598,7 +598,7 @@ function paintActions() {
   const a = A.ref.actions;
   if (!a) return;
   const busy = A.tl && A.tl.busy;
-  clear(a, h("span", { class: "mono subtle", style: { fontSize: "11.5px" }, text: `opencode · ${pref("agentName", "build")}` }), h("span", { class: "grow" }), busy && h("button", { class: "btn g", "data-act": "stop", onclick: stop, text: t("agent.stop", "Stop") }), h("button", { class: "btn br", "data-act": "send", disabled: A.sending, onclick: send, text: t("agent.send", "Send") + " ↵" }));
+  clear(a, h("span", { class: "mono subtle", style: { fontSize: "11.5px" }, text: agentKind() === "claude" ? "claude code" : `opencode · ${pref("agentName", "build")}` }), h("span", { class: "grow" }), busy && h("button", { class: "btn g", "data-act": "stop", onclick: stop, text: t("agent.stop", "Stop") }), h("button", { class: "btn br", "data-act": "send", disabled: A.sending, onclick: send, text: t("agent.send", "Send") + " ↵" }));
 }
 
 function onInput() {
@@ -690,7 +690,7 @@ async function connect() {
   try {
     const oc = await ensureOpenCode();
     A.connectedDir = dir;
-    if (!A.tl) A.sessionId = pref(`session:${dir}`, "");
+    if (!A.tl) A.sessionId = pref(sessKey(dir), "");
     if (!A.tl && A.sessionId) {
       try {
         const tl = new Timeline(A.sessionId);
@@ -770,7 +770,7 @@ async function ensureSession() {
   A.tl = new Timeline(ses.id);
   A.meta = ses;
   A.startedAt = Date.now();
-  setPref(`session:${workDir()}`, ses.id);
+  setPref(sessKey(), ses.id);
   return oc;
 }
 
@@ -784,7 +784,7 @@ export async function newSession() {
   A.meta = null;
   A.qa = null;
   A.mode = "chat";
-  if (S.active) setPref(`session:${workDir()}`, "");
+  if (S.active) setPref(sessKey(), "");
   bump();
   A.ref.ta.focus();
 }
@@ -822,7 +822,7 @@ async function switchTo(id) {
   A.meta = null;
   A.qa = null;
   A.mode = "chat";
-  setPref(`session:${workDir()}`, id);
+  setPref(sessKey(), id);
   bump();
   refreshMeta();
   A.ref.ta.focus();
@@ -860,7 +860,7 @@ function openSessions() {
     },
     remove: async (id) => {
       await S.oc.deleteSession(id).catch(() => {});
-      if (id === A.sessionId) ((A.tl = null), (A.sessionId = ""), (A.meta = null), setPref(`session:${workDir()}`, ""));
+      if (id === A.sessionId) ((A.tl = null), (A.sessionId = ""), (A.meta = null), setPref(sessKey(), ""));
       loadSessions(A.sesPanel.query());
       bump();
     },
@@ -1050,7 +1050,7 @@ async function send(opts = {}) {
       A.ref.ta.value = "";
     }
     if (known) await oc.command(A.sessionId, cmd[1], cmd[2]);
-    else await oc.prompt(A.sessionId, parts, { agent: pref("agentName", "") || undefined });
+    else await oc.prompt(A.sessionId, parts, { agent: (oc.agent === "opencode" && pref("agentName", "")) || undefined, yolo: yoloOn() });
     A.tl.busy = true;
   } catch (e) {
     if (e.status === 404 && !opts.retried) {
@@ -1058,7 +1058,7 @@ async function send(opts = {}) {
       A.sending = false;
       A.tl = null;
       A.sessionId = "";
-      setPref(`session:${workDir()}`, "");
+      setPref(sessKey(), "");
       return send({ ...opts, retried: true, text, keepDraft: true });
     }
     if (e.code === "root") {
@@ -1085,6 +1085,18 @@ async function stop() {
 }
 
 // Shows a "Restarting…" state until the new server answers or fails, so a click never looks ignored.
+// Also used when the user switches agent (menu → Agent): the old server stops, the chosen one starts.
+// The last session per agent and folder (OpenCode and Claude Code ids do not mix).
+const sessKey = (dir = workDir()) => (agentKind() === "claude" ? `session:claude:${dir}` : `session:${dir}`);
+
+/// Menu → Agent: stop the current agent's server and start the chosen one with its own last session.
+export async function switchAgent(kind) {
+  if (kind === agentKind()) return;
+  setPref("agent", kind);
+  ((A.tl = null), (A.sessionId = ""), (A.meta = null), (A.commands = null), (A.mode = "chat"));
+  await restartOc();
+}
+
 async function restartOc() {
   if (A.restarting) return;
   A.restarting = true;
@@ -1295,7 +1307,7 @@ async function summarize() {
       }, 1000);
       setTimeout(() => (clearInterval(iv), resolve()), 90000);
     });
-    await oc.prompt(ses.id, [{ type: "text", text: prompt }]);
+    await oc.prompt(ses.id, [{ type: "text", text: prompt }], { yolo: yoloOn() });
     await new Promise((r) => setTimeout(r, 800));
     await done;
     tmp.load(await oc.messages(ses.id));

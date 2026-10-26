@@ -1,7 +1,9 @@
 // OpenCode server API client (real endpoints of `opencode serve`, verified against its OpenAPI doc).
+// With agent "claude" the same API is served by the helper's claude-server.js (Claude Code).
 // Loopback only, HTTP Basic auth with the helper's per-launch password (kept in memory).
 export class OpenCode {
-  constructor({ port, password, dir }) {
+  constructor({ port, password, dir, agent = "opencode" }) {
+    this.agent = agent;
     this.base = `http://127.0.0.1:${port}`;
     this.auth = "Basic " + btoa(`opencode:${password}`);
     this.dir = dir;
@@ -20,7 +22,14 @@ export class OpenCode {
       headers: { Authorization: this.auth, ...(body !== undefined ? { "Content-Type": "application/json" } : {}) },
       body: body !== undefined ? JSON.stringify(body) : undefined,
     });
-    if (!res.ok) throw Object.assign(new Error(`OpenCode ${res.status}: ${(await res.text()).slice(0, 200)}`), { status: res.status });
+    if (!res.ok) {
+      const txt = await res.text();
+      let msg = txt.slice(0, 200);
+      try {
+        msg = JSON.parse(txt).message || msg;
+      } catch {}
+      throw Object.assign(new Error(`${this.agent === "claude" ? "Claude Code" : "OpenCode"} ${res.status}: ${msg}`), { status: res.status });
+    }
     const ct = res.headers.get("content-type") || "";
     return ct.includes("json") ? res.json() : null;
   }
@@ -68,9 +77,10 @@ export class OpenCode {
   pending() {
     return this.call("GET", "/permission");
   }
-  /// parts: [{type:"text",text,synthetic?}, {type:"file",mime,filename,url}]
-  prompt(id, parts, { agent, model } = {}) {
-    return this.call("POST", `/session/${id}/prompt_async`, { parts, ...(agent ? { agent } : {}), ...(model ? { model } : {}) });
+  /// parts: [{type:"text",text,synthetic?}, {type:"file",mime,filename,url}]. yolo: Claude Code only
+  /// (--dangerously-skip-permissions); OpenCode's permission requests are auto-approved by the panel instead.
+  prompt(id, parts, { agent, model, yolo } = {}) {
+    return this.call("POST", `/session/${id}/prompt_async`, { parts, ...(agent ? { agent } : {}), ...(model ? { model } : {}), ...(yolo && this.agent === "claude" ? { yolo: true } : {}) });
   }
   command(id, command, args) {
     return this.call("POST", `/session/${id}/command`, { command, arguments: args || "" });

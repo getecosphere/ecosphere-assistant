@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "Ecosphere Assistant",
-  "version": "2.0.0",
+  "version": "2.1.0",
   "description": "Your /project dashboard and a coding agent that sees the page you are on, in Chrome's side panel. Everything runs on your machine.",
   "homepage_url": "https://getecosphere.com/install",
   "minimum_chrome_version": "116",

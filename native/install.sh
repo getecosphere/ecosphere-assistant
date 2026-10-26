@@ -32,7 +32,7 @@ echo "node: $NODE_BIN"
 
 mkdir -p "$INSTALL_DIR"
 if [ -f "$SRC/lib.js" ] && [ -f "$SRC/host.js" ]; then
-  cp "$SRC/lib.js" "$SRC/host.js" "$INSTALL_DIR/"
+  cp "$SRC/lib.js" "$SRC/host.js" "$SRC/claude-server.js" "$SRC/perm-mcp.js" "$INSTALL_DIR/"
 else
   sed -n '/^__PAYLOAD__$/,$p' "$SELF" | tail -n +2 | base64 -d | tar xz -C "$INSTALL_DIR"
 fi

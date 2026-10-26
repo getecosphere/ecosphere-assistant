@@ -10,7 +10,7 @@ const os = require("os");
 const path = require("path");
 const crypto = require("crypto");
 
-const VERSION = "2.0.0";
+const VERSION = "2.1.0";
 const HOME_DIR = process.env.ECOSPHERE_ASSISTANT_HOME || path.join(os.homedir(), ".ecosphere-assistant");
 const CONFIG_PATH = path.join(HOME_DIR, "config.json");
 const SERVERS_PATH = path.join(HOME_DIR, "servers.json");
@@ -414,13 +414,15 @@ const sh = (v) => `'${String(v).replace(/'/g, `'\\''`)}'`;
 /// com.apple.quarantine, and OpenCode (a Bun binary) unpacks a native .dylib into $TMPDIR at start,
 /// which Gatekeeper then refuses ("... .dylib Not Opened"). A launchd job has no such parent. The
 /// per-launch password goes into an owner-only script, never into argv (ps shows argv to every user).
-async function spawnServer(bin, dir, port, password) {
+/// agent "opencode" runs `opencode serve`; "claude" runs claude-server.js (Claude Code behind the same API).
+async function spawnServer(agent, bin, dir, port, password) {
   const tmp = path.join(HOME_DIR, "tmp");
   fs.mkdirSync(tmp, { recursive: true, mode: 0o700 });
   const logFile = path.join(HOME_DIR, "opencode-server.log");
   const env = await childEnv();
   const rules = workspaceRules(dir);
   const cfg = rules.length ? JSON.stringify({ instructions: rules }) : "";
+  if (agent === "claude") return spawnClaude(bin, dir, port, password, rules, env, tmp, logFile);
   if (process.platform === "darwin") {
     const label = `com.ecosphere.assistant.opencode.${port}`;
     const script = path.join(HOME_DIR, `run-${port}.sh`);
@@ -439,6 +441,24 @@ async function spawnServer(bin, dir, port, password) {
   return { pid: child.pid };
 }
 
+async function spawnClaude(bin, dir, port, password, rules, env, tmp, logFile) {
+  const vars = { OPENCODE_SERVER_PASSWORD: password, CLAUDE_BIN: bin, WORKSPACE_RULES: JSON.stringify(rules), ECOSPHERE_ASSISTANT_HOME: HOME_DIR, TMPDIR: tmp, PATH: env.PATH, HOME: os.homedir() };
+  const argv = [process.execPath, path.join(__dirname, "claude-server.js"), "--port", String(port)];
+  if (process.platform === "darwin") {
+    const label = `com.ecosphere.assistant.opencode.${port}`;
+    const script = path.join(HOME_DIR, `run-${port}.sh`);
+    const exp = Object.entries(vars).map(([k, v]) => `${k}=${sh(v)}`).join(" ");
+    fs.writeFileSync(script, `#!/bin/sh\ncd ${sh(dir)} || exit 1\nexport ${exp}\nexec ${argv.map(sh).join(" ")}\n`, { mode: 0o700 });
+    const r = await runCmd("launchctl", ["submit", "-l", label, "-o", logFile, "-e", logFile, "--", "/bin/sh", script]);
+    if (r.code !== 0) throw new Reject(`could not start Claude Code: ${firstLine(r)}`);
+    return { pid: 0, label, script };
+  }
+  const log = fs.openSync(logFile, "a");
+  const child = spawn(argv[0], argv.slice(1), { cwd: dir, env: { ...env, ...vars }, detached: true, stdio: ["ignore", log, log] });
+  child.unref();
+  return { pid: child.pid };
+}
+
 async function launchdPid(label) {
   const r = await runCmd("launchctl", ["list", label], { timeout: 5000 });
   const m = r.stdout.match(/"PID"\s*=\s*(\d+)/);
@@ -446,8 +466,8 @@ async function launchdPid(label) {
 }
 
 const starting = new Map();
-function ocStart(dir) {
-  if (!starting.has(dir)) starting.set(dir, ocStartOnce(dir).finally(() => starting.delete(dir)));
+function ocStart(dir, agent = "opencode") {
+  if (!starting.has(dir)) starting.set(dir, ocStartOnce(dir, agent).finally(() => starting.delete(dir)));
   return starting.get(dir);
 }
 
@@ -484,23 +504,28 @@ async function sweepOrphans(servers) {
   }
 }
 
-async function ocStartOnce(dir) {
+const AGENT_NAME = { opencode: "OpenCode", claude: "Claude Code" };
+
+async function ocStartOnce(dir, agent) {
   const servers = readJson(SERVERS_PATH, {});
   await sweepOrphans(servers);
   const cur = servers[dir];
-  if (cur) {
+  if (cur && (cur.agent || "opencode") !== agent) {
+    await ocStop(dir);
+    delete servers[dir];
+  } else if (cur) {
     // still booting: wait for it instead of starting a second server next to it
     if ((await serverAlive(cur)) && (await waitHealthy(cur.port, cur.password, OC_START_MS))) return { port: cur.port, password: cur.password, reused: true };
     await ocStop(dir);
     delete servers[dir];
   }
-  const bin = await resolveBin("opencode");
-  if (!bin) throw new Reject("opencode is not installed");
+  const bin = await resolveBin(agent);
+  if (!bin) throw new Reject(agent === "claude" ? "Claude Code is not installed (https://claude.com/claude-code)" : "opencode is not installed");
   const port = await freePort();
   const password = crypto.randomBytes(18).toString("base64url");
   fs.mkdirSync(HOME_DIR, { recursive: true });
-  const started = await spawnServer(bin, dir, port, password);
-  servers[dir] = { pid: started.pid, port, password, label: started.label, script: started.script };
+  const started = await spawnServer(agent, bin, dir, port, password);
+  servers[dir] = { agent, pid: started.pid, port, password, label: started.label, script: started.script };
   writeJson(SERVERS_PATH, servers, 0o600);
   if (await waitHealthy(port, password, OC_START_MS)) {
     if (started.label) {
@@ -510,7 +535,7 @@ async function ocStartOnce(dir) {
     return { port, password, reused: false };
   }
   // left running: if it comes up later, the next start reuses it
-  throw new Reject(`OpenCode did not start within ${OC_START_MS / 60000} minutes (log: ~/.ecosphere-assistant/opencode-server.log)`);
+  throw new Reject(`${AGENT_NAME[agent]} did not start within ${OC_START_MS / 60000} minutes (log: ~/.ecosphere-assistant/opencode-server.log)`);
 }
 
 async function ocStop(dir) {
@@ -561,13 +586,14 @@ async function version(bin, args = ["--version"]) {
 
 const ACTIONS = {
   async hello() {
-    const [ecoBin, ocBin] = await Promise.all([resolveBin("eco"), resolveBin("opencode")]);
+    const [ecoBin, ocBin, ccBin] = await Promise.all([resolveBin("eco"), resolveBin("opencode"), resolveBin("claude")]);
     return {
       helper: VERSION,
       os: process.platform,
       arch: process.arch,
       eco: ecoBin ? { path: ecoBin, version: await version(ecoBin, ["--version"]) } : null,
       opencode: ocBin ? { path: ocBin, version: await version(ocBin) } : null,
+      claude: ccBin ? { path: ccBin, version: await version(ccBin) } : null,
       estates: approved().length,
     };
   },
@@ -814,7 +840,7 @@ const ACTIONS = {
   },
 
   async "oc.start"(a) {
-    return ocStart(workRoot(estateDir(a.dir)));
+    return ocStart(workRoot(estateDir(a.dir)), a.agent === "claude" ? "claude" : "opencode");
   },
 
   async "oc.stop"(a) {

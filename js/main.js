@@ -3,9 +3,9 @@ import { t, initLang } from "./i18n.js";
 import { led } from "./led.js";
 import { mountIntro, replayIntro } from "./intro.js";
 import { loadPrefs, pref, setPref, applyTheme } from "./prefs.js";
-import { S, subscribe, notify, call, refreshHelper, refreshWho, refreshEstates, refreshPm, refreshTab, selectProject, flags, workDir, setBoot } from "./app.js";
+import { S, subscribe, notify, call, refreshHelper, refreshWho, refreshEstates, refreshPm, refreshTab, selectProject, flags, workDir, setBoot, agentKind, agentLabel } from "./app.js";
 import { needsOnboarding, mountOnboarding } from "./onboarding.js";
-import { mountAgent, agentState, onAgentStatus } from "./agent.js";
+import { mountAgent, agentState, onAgentStatus, switchAgent } from "./agent.js";
 import { mountQa, qaBadge, refresh as refreshQa } from "./qa.js";
 import { mountProject, refresh as refreshProject } from "./project.js";
 import { mountCompose, refresh as refreshCompose } from "./compose.js";
@@ -230,10 +230,10 @@ function accountMenu() {
     item(`${t("menu.openProject", "Open /project")} ↗`, { attrs: { "data-act": "open-project" }, on: () => ((menu = null), chrome.tabs.create({ url: (S.pm && S.pm.dashboard) || "https://getecosphere.com/project" })) }),
     item(t("menu.tour", "Welcome tour"), { attrs: { "data-act": "tour" }, on: () => ((menu = null), replayIntro()) }),
     item(t("menu.steps", "Steps"), { attrs: { "data-act": "steps", title: t("menu.steps.t", "How much of the agent's work to show: only its intention, nothing, or every command") }, on: () => ((menu = null), setPref("steps", { intent: "quiet", quiet: "verbose", verbose: "intent" }[pref("steps", "intent")]), notify()) }, t(`steps.${pref("steps", "intent")}`, { intent: "intention", quiet: "quiet", verbose: "verbose" }[pref("steps", "intent")])),
-    S.active && item(t("menu.root", "Work folder"), { attrs: { "data-act": "root", title: t("menu.root.t", "The folder OpenCode runs in: its sessions and AGENTS.md come from here") }, on: () => ((menu = null), (S.view = "agent"), (S.rootAsk = true), notify()) }, shortPath(workDir())),
+    S.active && item(t("menu.root", "Work folder"), { attrs: { "data-act": "root", title: t("menu.root.t", "The folder the agent runs in: its sessions and AGENTS.md come from here") }, on: () => ((menu = null), (S.view = "agent"), (S.rootAsk = true), notify()) }, shortPath(workDir())),
     S.active && item(t("menu.folder", "Folder"), { attrs: { "data-act": "folder" }, on: () => navigator.clipboard.writeText(S.active.dir).catch(() => {}) }, shortPath(S.active.dir)),
     S.active && S.active.rules && S.active.rules.length > 0 && item(t("menu.rules", "Workspace rules"), { attrs: { "data-act": "rules", title: S.active.rules.join("\n") }, on: () => navigator.clipboard.writeText(S.active.rules.join("\n")).catch(() => {}) }, `${S.active.rules.length} · ${shortPath(S.active.rules[S.active.rules.length - 1])}`),
-    item(t("menu.model", "Model"), { on: () => {} }, "opencode · default"),
+    item(t("menu.agent", "Agent"), { attrs: { "data-act": "agent", title: t("menu.agent.t", "The coding agent on this machine: OpenCode or Claude Code. Click to switch.") }, on: () => ((menu = null), (S.view = "agent"), switchAgent(agentKind() === "claude" ? "opencode" : "claude"), paintHeader()) }, agentLabel()),
     item(`${t("menu.theme", "Theme")}: ${themeLabel}`, { attrs: { "data-act": "theme" }, on: () => (setPref("theme", { system: "light", light: "dark", dark: "system" }[theme]), applyTheme(), paintHeader()) }),
     item(t("menu.signout", "Sign out"), { danger: true, attrs: { "data-act": "signout" }, on: signOut }),
   );

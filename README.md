@@ -31,7 +31,8 @@ Chrome side panel: your **/project dashboard** next to the page you are on, plus
 side panel (UI, holds no secrets)
   ├─ native messaging ─▶ helper (native/lib.js: a FIXED allowlist of actions, validated args, argv only — no shell)
   │                        ├─ eco …           account, pm, deploy, lxs (the CLI's own login)
-  │                        └─ opencode serve  one per project, 127.0.0.1, random port + per-launch password
+  │                        ├─ opencode serve  one per project, 127.0.0.1, random port + per-launch password
+  │                        └─ claude-server.js  instead, when menu → Agent is Claude Code (same API, same password scheme)
   ├─ fetch 127.0.0.1:<port> ─▶ OpenCode API (sessions, prompt_async, /event SSE, permissions, abort)
   └─ chrome.scripting (on demand) ─▶ page: picker, console hook, toast
 ```
@@ -40,8 +41,17 @@ Permissions: `sidePanel nativeMessaging storage tabs activeTab scripting`; hosts
 `optional_host_permissions: <all_urls>` is asked at first use (per-site page access, and screenshots — `captureVisibleTab`
 needs `activeTab` or `<all_urls>`). No content script.
 
+**Claude Code** (menu → Agent, or "Use Claude Code instead" in setup): `native/claude-server.js` serves the subset of the
+OpenCode API the panel uses, so the panel code is the same for both. Sessions are Claude Code's own transcripts of the folder
+(`~/.claude/projects/<folder>/*.jsonl`, so `claude --resume` sees them too); each prompt runs `claude -p` with stream-json in
+and out. Permissions: `--permission-prompt-tool mcp__eco__approve` (`native/perm-mcp.js`) puts each request on the panel's
+permission card; **YOLO** (session bar, per folder) passes `--dangerously-skip-permissions` instead (with OpenCode, YOLO
+auto-approves its requests). Not available with Claude Code: /share, /undo, /redo. Test: `node --test native/test/`.
+Do not test the helper with a temporary `ECOSPHERE_ASSISTANT_HOME` while the real panel runs: the orphan sweep removes
+every `com.ecosphere.assistant.opencode.*` job the temporary `servers.json` does not list.
+
 **Workspace rules:** OpenCode only reads `AGENTS.md` up to the repo's git root, so the helper passes `AGENTS.md` files of parent
-folders (up to `$HOME`) as extra `instructions` — e.g. a workspace index above many estate repos still applies.
+folders (up to `$HOME`) as extra `instructions` (Claude Code: `--append-system-prompt`) — e.g. a workspace index above many estate repos still applies.
 
 ## Layout
 

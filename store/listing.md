@@ -26,30 +26,32 @@ Everything the dashboard asks for. Copy is English; the six languages follow whe
 
 > A coding agent beside your page, and your Ecosphere project, in Chrome's side panel.
 >
-> **Built on OpenCode.** The agent in this panel is OpenCode (opencode.ai), the open-source coding agent, running on your own
-> computer. The extension is its interface in Chrome: without OpenCode the chat and the agent do not work. Setup installs
-> OpenCode for you if it is missing. The AI model, and its account or API key, are the ones you configure in OpenCode; model
-> costs are between you and that provider. Ecosphere Assistant is not made by or affiliated with the OpenCode project.
+> **Works with OpenCode or Claude Code.** The agent in this panel is a coding agent on your own computer: OpenCode
+> (opencode.ai, open source) or Claude Code (claude.com/claude-code), your choice in the menu. The extension is its interface
+> in Chrome: without one of them the chat and the agent do not work. Setup installs OpenCode for you if you have neither. The
+> AI model and its account, subscription or API key are the ones you set up in that agent; model costs are between you and
+> that provider. Ecosphere Assistant is not made by or affiliated with the OpenCode project or Anthropic.
 >
 > **An agent that sees the page you are on.** Pick an element, describe the change, and the agent finds it in your source and
 > edits it. Reload the tab to see it. You choose what it may see: the page address, the element, a screenshot, the console errors.
 >
 > **You approve every step.** File changes appear as diffs. Every command waits for you: allow once, always for this project,
-> or reject. Rules from your workspace AGENTS.md are passed on to the agent.
+> or reject. Or switch on YOLO for a project and let the agent run without asking. Rules from your workspace AGENTS.md are
+> passed on to the agent.
 >
-> **Sessions that save tokens.** Start from a blank session, switch back to an old one, rename, fork, undo, redo or share it, with
-> OpenCode's slash commands (/new, /sessions, /compact, /undo…). A context meter explains how full the model's memory is and
+> **Sessions that save tokens.** Start from a blank session, switch back to an old one, rename or fork it, with slash commands
+> (/new, /sessions, /compact…); with OpenCode also undo, redo and share. A context meter explains how full the model's memory is and
 > offers Compact when it fills up.
 >
 > **Your project dashboard.** Open QA requests waiting in /project and let the agent reproduce and fix them; steps and an
 > end-of-session summary appear on the dashboard. Deploy the version you built on your machine (your source is never uploaded)
 > and add signed LXS capabilities to your `ecompose.yml` without hand-editing YAML.
 >
-> **Private by design.** OpenCode and a small helper program run on your computer. "Signed in" means the `eco` CLI on your
+> **Private by design.** The agent and a small helper program run on your computer. "Signed in" means the `eco` CLI on your
 > machine is signed in: the extension stores no key or token and reads a page only when you ask.
 >
 > **What you need**
-> - OpenCode on your computer, with an AI model configured (installed during setup if missing)
+> - OpenCode or Claude Code on your computer, with a model or subscription set up (OpenCode is installed during setup if you have neither)
 > - The eco CLI and an Ecosphere account (for /project, QA and deploy)
 > - The local helper (one install command shown on first open)
 > - Chrome 116+, macOS or Linux, Node.js 18+ (Windows via WSL is planned)

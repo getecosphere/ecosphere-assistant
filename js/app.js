@@ -117,19 +117,24 @@ export async function refreshTab() {
   notify();
 }
 
-/// Starts (or reuses) this project's OpenCode server through the helper and returns the client.
+/// The coding agent the user picked (menu → Agent): "opencode" or "claude" (Claude Code behind the same API).
+export const agentKind = () => (pref("agent", "opencode") === "claude" ? "claude" : "opencode");
+export const agentLabel = (k = agentKind()) => (k === "claude" ? "Claude Code" : "OpenCode");
+
+/// Starts (or reuses) this project's agent server through the helper and returns the client.
 let ocStarting = null;
 export async function ensureOpenCode() {
   if (!S.active) throw new Error("no project");
   if (needsRoot()) throw Object.assign(new Error("choose the folder you work from first"), { code: "root" });
   const dir = workDir();
-  if (S.oc && S.oc.dir === dir) return S.oc;
+  const agent = agentKind();
+  if (S.oc && S.oc.dir === dir && S.oc.agent === agent) return S.oc;
   // one start at a time: concurrent callers share it (two servers would split session and events)
-  if (!ocStarting || ocStarting.dir !== dir) {
+  if (!ocStarting || ocStarting.dir !== dir || ocStarting.agent !== agent) {
     const p = (async () => {
       try {
-        const { port, password } = await call("oc.start", { dir: S.active.dir });
-        const oc = new OpenCode({ port, password, dir });
+        const { port, password } = await call("oc.start", { dir: S.active.dir, agent });
+        const oc = new OpenCode({ port, password, dir, agent });
         await oc.health();
         S.oc = oc;
         S.ocError = "";
@@ -143,7 +148,7 @@ export async function ensureOpenCode() {
         notify();
       }
     })();
-    ocStarting = Object.assign(p, { dir });
+    ocStarting = Object.assign(p, { dir, agent });
   }
   return ocStarting;
 }
