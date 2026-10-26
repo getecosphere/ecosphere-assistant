@@ -18,6 +18,8 @@ const A = {
   chips: { page: true, shot: false, el: false, cons: false },
   picked: null, // {…element data, crop}
   picking: false,
+  restarting: false, // "Restart OpenCode" clicked, the new server not up yet
+  restartedAt: "", // time of the last restart that failed, shown under the error
   consoleErrors: [],
   access: false,
   guess: "",
@@ -190,8 +192,10 @@ function paintStrip() {
   let chip = h("span", { class: "chip c-mut", text: "idle" });
   if (wait) ((title = t("agent.waiting", "Agent is waiting for your permission")), (sub = `${A.tl.stepCount} ${t("agent.steps", "steps")} · ${dir}`), (chip = h("span", { class: "chip c-w", text: t("status.perm", "permission needed") })));
   else if (busy) ((title = t("agent.working", "Agent is working · {n} steps", { n: A.tl.stepCount })), (sub = `opencode · ${dir}`), (chip = h("span", { class: "chip c-br", text: t("status.working", "working") })));
-  if (S.ocError) ((title = t("agent.down", "OpenCode is not running")), (chip = h("span", { class: "chip c-bad", text: "down" })));
-  clear(s, h("div", { class: "grow" }, h("b", { text: title }), h("div", { class: "sub", text: sub })), chip, h("div", { class: "progress" + (busy && !wait ? " ind" : ""), style: wait ? { width: "50%" } : {} }));
+  const starting = A.restarting || (A.connecting && !S.oc);
+  if (starting) ((title = A.restarting ? t("agent.restarting", "Restarting OpenCode…") : t("agent.starting", "Starting OpenCode…")), (chip = h("span", { class: "chip c-br", text: t("status.starting", "starting") })));
+  else if (S.ocError) ((title = t("agent.down", "OpenCode is not running")), (chip = h("span", { class: "chip c-bad", text: "down" })));
+  clear(s, h("div", { class: "grow" }, h("b", { text: title }), h("div", { class: "sub", text: sub })), chip, h("div", { class: "progress" + ((busy && !wait) || starting ? " ind" : ""), style: wait ? { width: "50%" } : {} }));
 }
 
 const tilde = (p) => p.replace(/^\/(Users|home)\/[^/]+/, "~");
@@ -370,7 +374,8 @@ function paintStream() {
   A.ref.ctxHost = h("div");
   kids.push(A.ref.ctxHost);
   if (!A.tl || A.tl.items().length === 0) kids.push(suggestions());
-  if (S.ocError) kids.push(h("div", { class: "err", "data-err": "opencode" }, t("agent.downMsg", "Could not reach the local OpenCode server: {e}", { e: S.ocError }), h("button", { class: "btn g", "data-act": "restart-oc", onclick: restartOc, text: t("agent.restart", "Restart OpenCode") })));
+  if (A.restarting) kids.push(h("div", { class: "mt", "data-oc": "restarting" }, t("agent.restartingD", "Restarting OpenCode: stopping the old server and starting a new one. This can take up to a minute.")));
+  else if (S.ocError) kids.push(h("div", { class: "err", "data-err": "opencode" }, t("agent.downMsg", "Could not reach the local OpenCode server: {e}", { e: S.ocError }), A.restartedAt && h("div", { class: "sub", "data-oc": "retried" }, t("agent.retried", "Restart tried at {time}, still not running.", { time: A.restartedAt })), h("button", { class: "btn g", "data-act": "restart-oc", onclick: restartOc, text: t("agent.restart", "Restart OpenCode") })));
   if (!tl || tl.items().length === 0) {
     if (S.active) kids.push(h("div", { class: "mt", text: t("agent.connected", "Working from {dir} · project {p}.", { p: S.active.project, dir: shortDir(workDir()) }) }));
   }
@@ -651,6 +656,7 @@ async function connect() {
   if (A.connectedDir === dir) return;
   if (A.connectedDir) ((A.tl = null), (A.sessionId = ""), (A.meta = null), (A.qa = null), (A.picked = null), (A.mode = "chat"));
   A.connecting = true;
+  paintStrip();
   try {
     const oc = await ensureOpenCode();
     A.connectedDir = dir;
@@ -1047,15 +1053,23 @@ async function stop() {
   }
 }
 
+// Shows a "Restarting…" state until the new server answers or fails, so a click never looks ignored.
 async function restartOc() {
+  if (A.restarting) return;
+  A.restarting = true;
+  A.restartedAt = "";
+  bump();
   try {
     await call("oc.stop", { dir: S.active.dir });
   } catch {}
+  while (A.connecting) await new Promise((r) => setTimeout(r, 200));
   S.oc = null;
   S.ocError = "";
   A.connectedDir = "";
-  notify();
-  connect();
+  await connect();
+  A.restarting = false;
+  A.restartedAt = S.ocError ? new Date().toLocaleTimeString() : "";
+  bump();
 }
 
 function onRunEnd() {
