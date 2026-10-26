@@ -18,6 +18,7 @@ const A = {
   chips: { page: true, shot: false, el: false, cons: false },
   picked: null, // {…element data, crop}
   picking: false,
+  yoloAsk: false, // the "turn on YOLO?" confirm is showing in the session bar
   restarting: false, // "Restart OpenCode" clicked, the new server not up yet
   restartedAt: "", // time of the last restart that failed, shown under the error
   consoleErrors: [],
@@ -188,10 +189,10 @@ function paintStrip() {
   const wait = A.tl && A.tl.waitingForPermission;
   const dir = S.active ? shortDir(workDir()) : "";
   let title = t("agent.ready", "Agent ready");
-  let sub = `opencode · ${dir}`;
+  let sub = `opencode · ${dir}${yoloOn() ? " · yolo" : ""}`;
   let chip = h("span", { class: "chip c-mut", text: "idle" });
   if (wait) ((title = t("agent.waiting", "Agent is waiting for your permission")), (sub = `${A.tl.stepCount} ${t("agent.steps", "steps")} · ${dir}`), (chip = h("span", { class: "chip c-w", text: t("status.perm", "permission needed") })));
-  else if (busy) ((title = t("agent.working", "Agent is working · {n} steps", { n: A.tl.stepCount })), (sub = `opencode · ${dir}`), (chip = h("span", { class: "chip c-br", text: t("status.working", "working") })));
+  else if (busy) ((title = t("agent.working", "Agent is working · {n} steps", { n: A.tl.stepCount })), (chip = h("span", { class: "chip c-br", text: t("status.working", "working") })));
   const starting = A.restarting || (A.connecting && !S.oc);
   if (starting) ((title = A.restarting ? t("agent.restarting", "Restarting OpenCode…") : t("agent.starting", "Starting OpenCode…")), (chip = h("span", { class: "chip c-br", text: t("status.starting", "starting") })));
   else if (S.ocError) ((title = t("agent.down", "OpenCode is not running")), (chip = h("span", { class: "chip c-bad", text: "down" })));
@@ -345,6 +346,34 @@ function paintTip() {
   );
 }
 
+// YOLO: the user's per-folder choice to let the agent run everything without asking (OpenCode
+// permission requests are answered "once" automatically). Off by default; turning it on asks first.
+const yoloOn = () => Boolean(S.active && pref(`yolo:${workDir()}`, false));
+
+function yoloControls() {
+  if (A.yoloAsk)
+    return [
+      h("span", { class: "yolo-q", text: t("yolo.ask", "Run every command and edit without asking?") }),
+      h("button", { class: "btn sm yolo-go", "data-act": "yolo-on", onclick: () => setYolo(true), text: t("yolo.on", "Turn on YOLO") }),
+      h("button", { class: "btn g sm", "data-act": "yolo-cancel", onclick: () => ((A.yoloAsk = false), paintBar()), text: t("ses.shareNo", "Cancel") }),
+    ];
+  const on = yoloOn();
+  return [h("button", { class: "cc" + (on ? " yolo" : ""), "data-act": "yolo", "aria-pressed": String(on), title: on ? t("yolo.onT", "YOLO: the agent runs commands and edits files without asking. Click to ask first again.") : t("yolo.offT", "The agent asks before each command or edit. Click for YOLO (no questions)."), onclick: () => (on ? setYolo(false) : ((A.yoloAsk = true), paintBar())), text: on ? "yolo" : t("yolo.ask0", "ask first") })];
+}
+
+function setYolo(on) {
+  A.yoloAsk = false;
+  setPref(`yolo:${workDir()}`, on);
+  if (on && A.tl) for (const [id, p] of A.tl.perms) if (!p.answer) autoApprove(id);
+  bump();
+}
+
+function autoApprove(id) {
+  const p = A.tl && A.tl.perms.get(id);
+  if (p) p.auto = true;
+  answer(id, "once");
+}
+
 function paintBar() {
   const b = A.ref.barRow;
   if (!b) return;
@@ -357,7 +386,8 @@ function paintBar() {
     c && c.level === "bad" && h("button", { class: "btn g sm", "data-act": "compact", onclick: () => runBuiltin("compact"), text: t("ses.compact", "Compact") }),
     A.meta && A.meta.share && A.meta.share.url && h("span", { class: "cc on", "data-shared": "", title: t("ses.sharedT", "Shared: anyone with this link can read the session"), text: t("ses.shared", "shared") }),
     h("span", { class: "grow" }),
-    h("button", { class: "btn g sm", "data-act": "new-session", onclick: newSession, text: "+ " + t("ses.newShort", "New") }),
+    ...yoloControls(),
+    !A.yoloAsk && h("button", { class: "btn g sm", "data-act": "new-session", onclick: newSession, text: "+ " + t("ses.newShort", "New") }),
   );
   if (A.tipMode) paintTip();
 }
@@ -491,7 +521,7 @@ function permCard(it) {
   const isRun = r.permission === "bash";
   const what = isRun ? t("perm.run", "Run") : t("perm.allow", "Allow {perm}", { perm: r.permission });
   const answered = it.answer;
-  const label = { once: t("perm.once.done", "allowed once"), always: t("perm.always.done", "always allowed for this project"), reject: t("perm.reject.done", "rejected") }[answered];
+  const label = it.auto ? t("perm.auto.done", "auto-approved (YOLO)") : { once: t("perm.once.done", "allowed once"), always: t("perm.always.done", "always allowed for this project"), reject: t("perm.reject.done", "rejected") }[answered];
   return h(
     "div",
     { class: "pm", "data-kind": "perm", "data-id": r.id },
@@ -722,6 +752,7 @@ function onEvent(ev) {
   if (ev.type === "session.updated" && ev.properties && ev.properties.info && ev.properties.info.id === A.sessionId) setMeta(ev.properties.info);
   const before = tl.finished;
   if (!tl.apply(ev)) return;
+  if (ev.type === "permission.asked" && yoloOn() && tl.perms.has(ev.properties.id)) autoApprove(ev.properties.id);
   mirrorEvent(ev);
   if (tl.finished !== before) onRunEnd();
   if (!raf)
