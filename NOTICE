@@ -1,0 +1,14 @@
+Ecosphere Assistant
+Copyright 2026 Eko S. Wibowo (Ecosphere)
+
+Licensed under the Apache License, Version 2.0 (see LICENSE).
+
+Trademarks: "Ecosphere", "RWID" and the Ecosphere and RWID logos and icons are
+trademarks of their owner. The Apache License grants no rights to use them
+(section 6). A fork must use its own name and icons.
+
+Third-party components:
+- DM Mono (fonts/dm-mono-*.woff2), Copyright 2020 The DM Mono Project Authors,
+  SIL Open Font License 1.1 (fonts/OFL-DMMono.txt).
+- Manrope (fonts/manrope-*.woff2), Copyright 2018 The Manrope Project Authors,
+  SIL Open Font License 1.1 (fonts/OFL-Manrope.txt).

@@ -79,3 +79,9 @@ so the helper trusts it. Graphics: `store/make-icons.py` and `STORE=1 npx playwr
 ## Uninstall
 
 Remove the extension; run `native/uninstall.sh` (stops the OpenCode servers it started, removes the registration).
+
+## License
+
+Apache License 2.0 ([LICENSE](LICENSE)); copyright and third-party notices in [NOTICE](NOTICE). The fonts are under the
+SIL Open Font License 1.1 (`fonts/OFL-*.txt`). The Ecosphere and RWID names, logos and icons are trademarks and are not
+licensed: a fork must use its own name and icons.
